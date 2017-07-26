@@ -395,11 +395,6 @@
               <FilePath>.\App\src\main.c</FilePath>
             </File>
             <File>
-              <FileName>SIM800.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\App\src\SIM800.c</FilePath>
-            </File>
-            <File>
               <FileName>stm32f10x_it.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\App\src\stm32f10x_it.c</FilePath>
@@ -423,6 +418,16 @@
               <FileName>usart3.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\App\src\usart3.c</FilePath>
+            </File>
+            <File>
+              <FileName>queue.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\App\src\queue.c</FilePath>
+            </File>
+            <File>
+              <FileName>YR_4G.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\App\src\YR_4G.c</FilePath>
             </File>
           </Files>
         </Group>

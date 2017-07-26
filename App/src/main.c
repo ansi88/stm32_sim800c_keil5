@@ -27,9 +27,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "timer.h"
-#include "SIM800.h"
+#include "YR_4G.h"
 #include "device.h"
-
+#include "queue.h"
 
 ////////////////////////ST官方程序框架需要的变量和函数///////////////////////////////////////////
 
@@ -73,6 +73,13 @@ int main(void)
 	/* Enable GPIOx Clock */
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
 
+	q = CycQueueInit();
+	
+	if(q == NULL)
+	{
+		//BSP_Printf("malloc error!\n");
+	}
+	
 	delay_init();
 
 #ifdef LOG_ENABLE	
@@ -81,7 +88,7 @@ int main(void)
 	usart1_init(115200);                            //串口1,Log
 #endif
 	
-	usart3_init(115200);                            //串口3,对接SIM800
+	usart3_init(115200);                            //串口3,对接YR4G
 	dev.msg_recv = 0;	
 	Reset_Device_Status(CMD_NONE);
 	//清零USART3_RX_BUF和USART3_RX_STA
@@ -90,10 +97,10 @@ int main(void)
 	
 	//开机
 	//包含2G模块电源芯片的软件使能和2G模块的PWRKEY的使能
-	//SIM800_POWER_ON函数是作为急停使用
-	SIM800_POWER_ON();  
-	SIM800_PWRKEY_ON();
-	BSP_Printf("SIM800C开机完成\r\n");
+	//YR4G_POWER_ON函数是作为急停使用
+	YR4G_POWER_ON();  
+	YR4G_PWRKEY_ON();
+	BSP_Printf("YR4GC开机完成\r\n");
 	
 	Device_Init();
 	//Device_ON(DEVICE_01);
@@ -103,14 +110,14 @@ int main(void)
 		BSP_Printf("Power[%d]: %d\n", i, Device_Power_Status(i));
 	}
 	
-	if(SIM800_Link_Server() != CMD_ACK_OK)
+	if(YR4G_Link_Server() != CMD_ACK_OK)
 	{
 		BSP_Printf("INIT: Failed to connect to Server\r\n");
 		dev.need_reset = ERR_INIT_LINK_SERVER;
 		//while(1){闪烁LED}
 	}
 	
-	BSP_Printf("SIM800C连接服务器完成\r\n");
+	BSP_Printf("YR4GC连接服务器完成\r\n");
 
 	if(Send_Login_Data_To_Server() != CMD_ACK_OK)
 	{
@@ -118,7 +125,7 @@ int main(void)
 		dev.need_reset = ERR_INIT_SEND_LOGIN;
 		//while(1){闪烁LED}
 	}
-	BSP_Printf("SIM800C发送登录信息给服务器完成\r\n");
+	BSP_Printf("YR4GC发送登录信息给服务器完成\r\n");
 
 	//程序运行至此，已经成功发送登录信息给服务器，下面开启定时器，等待服务器的回文信息
 	//清零串口3的数据，等待接收服务器的数据
@@ -138,19 +145,19 @@ int main(void)
 		if(dev.need_reset != ERR_NONE)
 		{
 			memset(sms_data, 0, sizeof(sms_data));
-			SIM800_SMS_Create(sms_data, dev.sms_backup);	
+			YR4G_SMS_Create(sms_data, dev.sms_backup);	
 			
 			BSP_Printf("开始重启\r\n");	
 			TIM_Cmd(TIM7, DISABLE);
 			dev.msg_recv = 0;			
 			Reset_Device_Status(CMD_NONE);
 			//dev.need_reset = FALSE;
-			SIM800_Powerkey_Restart(); 
+			YR4G_Powerkey_Restart(); 
 			Clear_Usart3();
 			TIM_Cmd(TIM7, ENABLE);	
 
-			//SIM800_SMS_Notif(cell, sms_data);
-			if(SIM800_Link_Server() != CMD_ACK_OK)
+			//YR4G_SMS_Notif(cell, sms_data);
+			if(YR4G_Link_Server() != CMD_ACK_OK)
 			{
 				BSP_Printf("重启连接服务器失败\r\n");
 				dev.need_reset = ERR_RESET_LINK_SERVER;
@@ -165,13 +172,13 @@ int main(void)
 					{
 						if(Send_Login_Data_To_Server() != CMD_ACK_OK)
 						{
-							BSP_Printf("SIM800C发送登录信息给服务器失败\r\n");
+							BSP_Printf("YR4GC发送登录信息给服务器失败\r\n");
 							dev.need_reset = ERR_SEND_LOGIN;
 						}
 						else
 						{
 							//Clear_Usart3();
-							BSP_Printf("SIM800C发送登录信息给服务器完成\r\n");
+							BSP_Printf("YR4GC发送登录信息给服务器完成\r\n");
 						}	
 					}
 				break;
@@ -182,13 +189,13 @@ int main(void)
 						BSP_Printf("第  %d  次发送心跳\r\n", dev.hb_count++);
 						if(Send_Heart_Data_To_Server() != CMD_ACK_OK)
 						{
-							BSP_Printf("SIM800C发送心跳信息给服务器失败\r\n");
+							BSP_Printf("YR4GC发送心跳信息给服务器失败\r\n");
 							dev.need_reset = ERR_SEND_HB;
 						}
 						else
 						{
 							//Clear_Usart3();
-							BSP_Printf("SIM800C发送心跳信息给服务器完成\r\n");
+							BSP_Printf("YR4GC发送心跳信息给服务器完成\r\n");
 						}						
 					}					
 				break;
@@ -198,13 +205,13 @@ int main(void)
 					{
 						if(Send_Close_Device_Data_To_Server() != CMD_ACK_OK)
 						{
-							BSP_Printf("SIM800C发送设备关闭给服务器失败\r\n");
+							BSP_Printf("YR4GC发送设备关闭给服务器失败\r\n");
 							dev.need_reset = ERR_SEND_CLOSE_DEVICE;
 						}
 						else
 						{
 							//Clear_Usart3();
-							BSP_Printf("SIM800C发送设备关闭给服务器完成\r\n");
+							BSP_Printf("YR4GC发送设备关闭给服务器完成\r\n");
 						}						
 					}					
 				break;
@@ -270,7 +277,7 @@ int main(void)
 					else
 					{
 						//Clear_Usart3();
-						BSP_Printf("SIM800C发送Enable 回文给服务器完成\r\n");
+						BSP_Printf("YR4GC发送Enable 回文给服务器完成\r\n");
 					}				
 				}
 								

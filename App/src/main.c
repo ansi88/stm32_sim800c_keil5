@@ -110,12 +110,14 @@ int main(void)
 		BSP_Printf("Power[%d]: %d\n", i, Device_Power_Status(i));
 	}
 	
-	if(YR4G_Link_Server() != CMD_ACK_OK)
+	if(!YR4G_Link_Server())
 	{
 		BSP_Printf("INIT: Failed to connect to Server\r\n");
 		dev.need_reset = ERR_INIT_LINK_SERVER;
 		//while(1){闪烁LED}
 	}
+
+	while(1);
 	
 	BSP_Printf("YR4GC连接服务器完成\r\n");
 
@@ -157,7 +159,7 @@ int main(void)
 			TIM_Cmd(TIM7, ENABLE);	
 
 			//YR4G_SMS_Notif(cell, sms_data);
-			if(YR4G_Link_Server() != CMD_ACK_OK)
+			if(!YR4G_Link_Server())
 			{
 				BSP_Printf("重启连接服务器失败\r\n");
 				dev.need_reset = ERR_RESET_LINK_SERVER;

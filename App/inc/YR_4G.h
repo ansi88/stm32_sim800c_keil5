@@ -1,14 +1,23 @@
 #ifndef __YR4G_H__
 #define __YR4G_H__	 
 #include "sys.h"
+#include "device.h"
 
-#define LENGTH_VERSION_BUF 20     								//ICCID的长度是20个字符
+#define LENGTH_VERSION_BUF 20
 extern char version[LENGTH_VERSION_BUF];
 
-//存储PCB_ID的数组（也就是SIM卡的ICCID）
-#define LENGTH_ICCID_BUF 20     								//ICCID的长度是20个字符
-extern char ICCID_BUF[LENGTH_ICCID_BUF+1];
-#define OFFSET_ICCID 2                          //
+#define LENGTH_WKMOD_BUF 20
+extern char wkmod[LENGTH_WKMOD_BUF];
+
+#define LENGTH_PASSWORD_BUF 20
+extern char password[LENGTH_PASSWORD_BUF];
+
+#define LENGTH_SYSINFO_BUF 20 
+extern char sysinfo[LENGTH_SYSINFO_BUF];
+#define LENGTH_ICCID_BUF 20
+
+extern char iccid[LENGTH_ICCID_BUF];
+
 
 //存储设备重发命令的数组
 #define LENGTH_RESEND 35
@@ -36,7 +45,7 @@ extern char Device_OK_Buffer[LENGTH_DEVICE_OK];
 #define LENGTH_SMS_BACKUP        100
 
 /*********WJ*********/
-u8 	YR4G_Send_Cmd(u8 *cmd,u8 *ack,u8 *recv,u16 waittime);
+u8 	YR4G_Send_Cmd(char *cmd,char *ack,char *recv,u16 waittime);
 void Clear_buffer(char* buffer,u16 length);
 u8 Check_Xor_Sum(char* pBuf, u16 len);
 
@@ -71,9 +80,9 @@ void YR4G_Powerkey_Restart(void);
 void YR4G_Power_Restart(void);
 
 
-u8 YR4G_Link_Server(void);
-u8 YR4G_Link_Server_AT(void);
-u8 YR4G_Link_Server_Powerkey(void);
+bool YR4G_Link_Server(void);
+bool YR4G_Link_Server_AT(void);
+bool YR4G_Link_Server_Powerkey(void);
 
 u8 Send_Login_Data(void);
 u8 Send_Login_Data_Normal(void);

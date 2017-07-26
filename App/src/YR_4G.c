@@ -6,17 +6,59 @@
 #include "timer.h"
 #include "delay.h"
 #include <stdlib.h>
-#include "device.h"
 #include "queue.h"
 
-enum{};
+enum{
+	AT=0,
+	AT_Z,
+	AT_REBOOT,
+	AT_E,
+	AT_ENTM,
+	AT_WKMOD,
+	AT_CMDPW,
+	AT_STMSG,
+	AT_RSTIM,
+	AT_CSQ,
+	AT_SYSINFO,
+	AT_RELD,
+	AT_CLEAR,
+	AT_CFGTF,
+	AT_VER,
+	AT_SN,
+	AT_ICCID,
+	AT_IMEI,
+	
+	AT_MAX,
+};
 
 typedef struct
 {
-	const char *cmd;
-	const char *ack;
+	char *cmd;
+	char *ack;
 }AtPair;
 
+AtPair atpair[]=
+{
+	{"", "OK"},
+	{"+Z", "OK"},	
+	{"+REBOOT", "OK"},	
+	{"+E", "+E:"},	
+	{"+ENTM", "OK"},
+	{"+WKMOD", "+WKMOD:"},
+	{"+CMDPW", "+CMDPW:"},	
+	{"+RSTIM", "+RSTIM:"},	
+	{"+CSQ", "+CSQ:"},	
+	{"+SYSINFO", "+SYSINFO:"},		
+	{"+RELD", "+RELD:"},
+	{"+CLEAR", "OK"},		
+	{"+CFGIF", "OK"},	
+	{"+VER", "+VER:"},		
+	{"+SN", "+SN:"},
+	{"+ICCID", "+ICCID:"},	
+	{"+IMEI", "+IMEI:"},
+	{NULL, NULL},
+};
+	
 #define COUNT_AT 3
 #define RETRY_AT 3
 
@@ -35,7 +77,8 @@ const char ending='#';
 const char *Error="Err";
 
 char version[LENGTH_VERSION_BUF] = {0};
-char ICCID_BUF[LENGTH_ICCID_BUF+1] = {0};
+char sysinfo[LENGTH_SYSINFO_BUF] = {0};
+char iccid[LENGTH_ICCID_BUF] = {0};
 
 t_DEV dev={0};
 extern void Reset_Device_Status(u8 status);
@@ -44,23 +87,7 @@ const char *msg_id[MSG_STR_ID_MAX]={"TRVAP00", "TRVAP01", "TRVAP03", "TRVAP05"};
 const char *msg_id_s[MSG_STR_ID_MAX]={"TRVBP00", "TRVBP01", "TRVBP03", "TRVBP05"};
 const char *msg_device="000";
 
-const char *AT_ACK="OK";
-const char *AT_Z_ACK="OK";
-const char *AT_REBOOT_ACK="OK";
-const char *AT_E_ACK="+E";
-const char *AT_ENTM_ACK="OK";
-const char *AT_WKMOD_ACK="+WKMOD:";	
-const char *AT_CMDPW_ACK="+CMDPW:";	
-const char *AT_RSTIM_ACK="+RSTIM:";
-const char *AT_CSQ_ACK="+CSQ:";
-const char *AT_SYSINFO_ACK="+SYSINFO:";
-const char *AT_RELD_ACK="OK";
-const char *AT_CLEAR_ACK="OK";
-const char *AT_CFGIF_ACK="OK";
-const char *AT_VER_ACK="+VER:";
-const char *AT_SN_ACK="+SN:";
-const char *AT_ICCID_ACK="+ICCID:";
-const char *AT_IMEI_ACK="+IMEI:";
+
 
 
 
@@ -85,12 +112,13 @@ char *DumpQueue(char * recv)
 }
 
 //waittime:等待时间(单位:10ms)
-bool YR4G_Send_Cmd(u8 *cmd,u8 *ack,u8 *recv,u16 waittime)
+bool YR4G_Send_Cmd(char *cmd,char *ack,char *recv,u16 waittime)
 {
 	bool ret = FALSE; 
+	char cmd_str[100]={0};
 	
-	u3_printf("%s",passcode)
-	u3_printf("%s\r\n",cmd);//发送命令
+	sprintf(cmd_str, "%s%s%s", passcode, "AT", cmd);
+	u3_printf("%s\r\n",cmd_str);//发送命令
 
 	if(ack&&waittime)		//需要等待应答
 	{
@@ -121,11 +149,12 @@ bool YR4G_Send_Cmd(u8 *cmd,u8 *ack,u8 *recv,u16 waittime)
 bool CheckModule(void)
 {
 	u8 retry = RETRY_AT;
-	char recv[50];
+	u8 id=AT;
+	char recv[50];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
-		if(ret = YR4G_Send_Cmd("AT","OK",recv,100)) 
+		if(ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100)) 
 			break;
 		delay_ms(2000);
 		retry--;
@@ -138,14 +167,16 @@ bool CheckModule(void)
 bool GetVersion(void)
 {
 	u8 retry = RETRY_AT;
-	u8 *ack=AT_
+	u8 id=AT_VER;
 	char recv[50];	
 	bool ret = FALSE;
 	while(retry != 0)
 	{
-		if(ret = YR4G_Send_Cmd("VER?",,recv,200))
+		if(ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100)) 
 		{
-			strcpy(version, strstr(recv, ));
+			memset(version, 0, sizeof(version));
+			strcpy(version, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
+			BSP_Printf("Version: %s\n", version);
 			break;
 		}
 		delay_ms(2000);
@@ -156,25 +187,27 @@ bool GetVersion(void)
 	
 }
 
-bool CheckNetwork(void)
+bool CheckSysinfo(void)
 {
-	u8 count = 20;
-	u8 ret = CMD_ACK_NONE;
-	while(count != 0)
+	u8 retry = RETRY_AT;
+	u8 id=AT_SYSINFO;
+	char recv[50];	
+	bool ret = FALSE;
+	while(retry != 0)
 	{
-		ret = YR4G_Send_Cmd("AT+SYSINFO?","+SYSINFO",500);
-		if(ret == CMD_ACK_NONE) 
+		if(ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100)) 
 		{
-			delay_ms(2000);
-		}
-		else if((ret == CMD_ACK_OK) || (ret == CMD_ACK_DISCONN))  //在正常AT 命令里基本上不可能返回"CLOSED" 吧 ，仅放在这里
+			memset(version, 0, sizeof(version));
+			strcpy(version, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
+			BSP_Printf("Version: %s\n", version);
 			break;
-		
-		count--;
+		}
+		delay_ms(2000);
+		retry--;
 	}
 	
-	//Clear_Usart3();	
 	return ret;
+	
 	
 }
 
@@ -336,9 +369,10 @@ u8 YR4G_GPRS_OFF(void)
 {
 	u8 count = COUNT_AT;
 	u8 ret = CMD_ACK_NONE;
+	char recv[50];		
 	while(count != 0)
 	{
-		ret = YR4G_Send_Cmd("AT+CIPCLOSE=1","CLOSE OK",500);
+		ret = YR4G_Send_Cmd("AT+CIPCLOSE=1","CLOSE OK",recv,500);
 		if(ret == CMD_ACK_NONE)
 		{
 			delay_ms(2000);
@@ -359,9 +393,10 @@ u8 YR4G_GPRS_Adhere(void)
 {
 	u8 count = COUNT_AT;
 	u8 ret = CMD_ACK_NONE;
+	char recv[50];			
 	while(count != 0)
 	{
-		ret = YR4G_Send_Cmd("AT+CGATT=1","OK",1000);
+		ret = YR4G_Send_Cmd("AT+CGATT=1","OK",recv,1000);
 		if(ret == CMD_ACK_NONE)
 		{
 			delay_ms(2000);
@@ -382,9 +417,10 @@ u8 YR4G_GPRS_Set(void)
 {
 	u8 count = COUNT_AT;
 	u8 ret = CMD_ACK_NONE;
+	char recv[50];			
 	while(count != 0)
 	{
-		ret = YR4G_Send_Cmd("AT+CIPCSGP=1,\"CMNET\"","OK",600);
+		ret = YR4G_Send_Cmd("AT+CIPCSGP=1,\"CMNET\"","OK",recv,600);
 		if(ret == CMD_ACK_NONE)
 		{
 			delay_ms(2000);
@@ -405,9 +441,10 @@ u8 YR4G_GPRS_Dispaly_IP(void)
 {
 	u8 count = COUNT_AT;
 	u8 ret = CMD_ACK_NONE;
+	char recv[50];			
 	while(count != 0)
 	{
-		ret = YR4G_Send_Cmd("AT+CIPHEAD=1","OK",300);
+		ret = YR4G_Send_Cmd("AT+CIPHEAD=1","OK",recv,300);
 		if(ret == CMD_ACK_NONE)
 		{
 			delay_ms(2000);
@@ -427,9 +464,10 @@ u8 YR4G_GPRS_CIPSHUT(void)
 {
 	u8 count = COUNT_AT;
 	u8 ret = CMD_ACK_NONE;
+	char recv[50];			
 	while(count != 0)
 	{
-		ret = YR4G_Send_Cmd("AT+CIPSHUT","SHUT OK",1000);
+		ret = YR4G_Send_Cmd("AT+CIPSHUT","SHUT OK",recv,1000);
 		if(ret == CMD_ACK_NONE)
 		{
 			delay_ms(2000);
@@ -450,9 +488,10 @@ u8 YR4G_GPRS_CGCLASS(void)
 {
 	u8 count = COUNT_AT;
 	u8 ret = CMD_ACK_NONE;
+	char recv[50];			
 	while(count != 0)
 	{
-		ret = YR4G_Send_Cmd("AT+CGCLASS=\"B\"","OK",300);
+		ret = YR4G_Send_Cmd("AT+CGCLASS=\"B\"","OK",recv,300);
 		if(ret == CMD_ACK_NONE)
 		{
 			delay_ms(2000);
@@ -474,9 +513,10 @@ u8 YR4G_GPRS_CGDCONT(void)
 {
 	u8 count = COUNT_AT;
 	u8 ret = CMD_ACK_NONE;
+	char recv[50];			
 	while(count != 0)
 	{
-		ret = YR4G_Send_Cmd("AT+CGDCONT=1,\"IP\",\"CMNET\"","OK",600);
+		ret = YR4G_Send_Cmd("AT+CGDCONT=1,\"IP\",\"CMNET\"","OK",recv,600);
 		if(ret == CMD_ACK_NONE)
 		{
 			delay_ms(2000);
@@ -497,7 +537,7 @@ u8 Link_Server_AT(u8 mode,const char* ipaddr,const char *port)
 	u8 count = COUNT_AT;
 	u8 ret = CMD_ACK_NONE;
 	u8 p[100]={0};
-	
+	char recv[50];			
 	if(mode)
 		;
 	else 
@@ -510,7 +550,7 @@ u8 Link_Server_AT(u8 mode,const char* ipaddr,const char *port)
 	//这里先取三种可能回文的公共部分来作为判断该指令有正确回文的依据
 	while(count != 0)
 	{
-		ret = YR4G_Send_Cmd(p,"CONNECT",15000);
+		ret = YR4G_Send_Cmd(p,"CONNECT",recv,15000);
 		if(ret == CMD_ACK_NONE)
 		{
 			delay_ms(2000);
@@ -520,15 +560,15 @@ u8 Link_Server_AT(u8 mode,const char* ipaddr,const char *port)
 		
 		count--;
 		
-		ret = YR4G_Send_Cmd("AT+CIPSTATUS","OK",500);
+		ret = YR4G_Send_Cmd("AT+CIPSTATUS","OK",recv,500);
 		if(ret == CMD_ACK_OK)
 		{
 			if(strstr((const char*)(dev.usart_data),"CONNECT OK") != NULL)
 				return ret;
 			if(strstr((const char*)(dev.usart_data),"CLOSED") != NULL)
 			{
-				ret = YR4G_Send_Cmd("AT+CIPCLOSE=1","CLOSE OK",500);
-				ret = YR4G_Send_Cmd("AT+CIPSHUT","SHUT OK",500);
+				ret = YR4G_Send_Cmd("AT+CIPCLOSE=1","CLOSE OK",recv,500);
+				ret = YR4G_Send_Cmd("AT+CIPSHUT","SHUT OK",recv,500);
 			}
 		}
 	}
@@ -539,51 +579,9 @@ u8 Link_Server_AT(u8 mode,const char* ipaddr,const char *port)
 u8 Send_Data_To_Server(char* data)
 {
 	u8 ret = CMD_ACK_NONE;
-
-	if(dev.status == CMD_TO_IDLE)
-	{
-		BSP_Printf("Send_Data_To_Server: already IDLE status\r\n");
-		return CMD_ACK_OK;
-	}
+	char recv[50];		
+	u3_printf(data)
 	
-	if(dev.need_reset != ERR_NONE)
-	{
-		BSP_Printf("Send_Data_To_Server: Need Reset\r\n");	
-		ret = CMD_ACK_DISCONN;
-	}
-	else
-	{
-		BSP_Printf("准备开始发送数据\r\n");
-		//由于前一次发送可能收到了ack, 但没有收到服务器回文
-		//因此需要开始重发的时候重置某些变量
-		//PS. 但在中断外部操作设备状态可能有风险!!!
-		//Reset_Device_Status(dev.status);
-		dev.msg_recv = 0;		
-		//dev.hb_timer = 0;
-		//dev.reply_timeout = 0;
-		//dev.msg_timeout = 0;
-		//dev.msg_recv = 0;
-		dev.msg_expect = 0;
-		memset(dev.atcmd_ack, 0, sizeof(dev.atcmd_ack));
-		memset(dev.device_on_cmd_string, 0, sizeof(dev.device_on_cmd_string));
-		
-		ret = YR4G_Send_Cmd("AT+CIPSEND",">",500);
-	}
-	
-	if(ret == CMD_ACK_OK)		//发送数据
-	{ 
-		//Clear_Usart3();   //成功发送"AT+CIPSEND" 之后，才使能串口接收
-		u3_printf("%s",data);
-		delay_ms(100);
-		ret = YR4G_Send_Cmd((u8*)0x1A,"SEND OK",3000);
-	}
-	else
-	{
-		BSP_Printf("Cancel Sending: %d\r\n", ret);
-		YR4G_Send_Cmd((u8*)0x1B,0,0);
-	}
-	
-	BSP_Printf("已完成一次发送: %d\r\n", ret);
 	return ret;
 }
 
@@ -615,103 +613,11 @@ u8 Check_Link_Status(void)
 }
 #endif
 
-//设置文本模式 
-u8 YR4G_CMGF_Set(void)
-{
-	u8 count = COUNT_AT;
-	u8 ret = CMD_ACK_NONE;
-	while(count != 0)
-	{
-		ret = YR4G_Send_Cmd("AT+CMGF=1","OK",1000);
-		if(ret == CMD_ACK_NONE)
-		{
-			delay_ms(2000);
-		}
-		else if((ret == CMD_ACK_OK) || (ret == CMD_ACK_DISCONN))
-			break;
-		
-		count--;
-	}
-
-	delay_ms(2000);	
-	return ret;
-}
-
-//设置短消息文本模式参数 
-u8 YR4G_CSMP_Set(void)
-{
-	u8 count = COUNT_AT;
-	u8 ret = CMD_ACK_NONE;
-	while(count != 0)
-	{
-		ret = YR4G_Send_Cmd("AT+CSMP=17,167,0,0","OK",200);
-		if(ret == CMD_ACK_NONE)
-		{
-			delay_ms(2000);
-		}
-		else if((ret == CMD_ACK_OK) || (ret == CMD_ACK_DISCONN))
-			break;
-		
-		count--;
-	}
-	
-	delay_ms(2000);	
-	return ret;
-}
-
-u8 YR4G_CSCS_Set(void)
-{
-	u8 count = COUNT_AT;
-	u8 ret = CMD_ACK_NONE;
-	while(count != 0)
-	{
-		ret = YR4G_Send_Cmd("AT+CSCS=\"GSM\"","OK",200);
-		if(ret == CMD_ACK_NONE)
-		{
-			delay_ms(2000);
-		}
-		else if((ret == CMD_ACK_OK) || (ret == CMD_ACK_DISCONN))
-			break;
-		
-		count--;
-	}
-	
-	delay_ms(2000);	
-	return ret;
-}
-
 char *YR4G_SMS_Create(char *sms_data, char *raw)
 {
 	sprintf((char*)sms_data,"Reset Type: %d, Dev Status: %d, Msg expect: %d, Msg recv: %d, HB: %d, HB TIMER: %d, Msg TIMEOUT: %d, Msg: \"%s\", AT-ACK: %s\r\n", dev.need_reset, 
 		dev.status, dev.msg_expect, dev.msg_recv, dev.hb_count, dev.hb_timer, dev.msg_timeout, raw, dev.atcmd_ack); 
 	return sms_data;
-}
-
-u8 YR4G_SMS_Notif(char *phone, char *sms)
-{
-	u8 ret = CMD_ACK_NONE;
-	u8 sms_cmd[100]={0};
-	//u8 sms_data[100]={0};
-
-	if((ret = Check_Module()) == CMD_ACK_OK)
-		if((ret = Disable_Echo()) == CMD_ACK_OK)
-			if((ret = Check_SIM_Card()) == CMD_ACK_OK)	
-				if((YR4G_CSCS_Set()) == CMD_ACK_OK)
-					if((ret = YR4G_CMGF_Set()) == CMD_ACK_OK)
-						if((ret = YR4G_CSMP_Set()) == CMD_ACK_OK)
-						{		
-							sprintf((char*)sms_cmd,"AT+CMGS=\"%s\"\r\n",phone); 
-							if(YR4G_Send_Cmd(sms_cmd,">",200)==CMD_ACK_OK)					//发送短信命令+电话号码
-							{
-								//sprintf((char*)sms_data,"Dev Status: %d, Msg expect: %d, Msg recv: %d, HB: %d, HB TIMER: %d, Msg TIMEOUT: %d Msg: \"%s\"\r\n", dev.status, dev.msg_expect, dev.msg_recv, dev.hb_count, dev.hb_timer, dev.msg_timeout, current); 
-								BSP_Printf("SMS: %s\r\n", sms);
-								u3_printf("%s",sms);		 						//发送短信内容到GSM模块 
-								delay_ms(500);                                   //必须延时，否则不能发送短信
-								ret = YR4G_Send_Cmd((u8*)0X1A,"+CMGS:",2000); //发送结束符,等待发送完成(最长等待10秒钟,因为短信长了的话,等待时间会长一些)
-							}  			
-						}
-
-	return ret;
 }
 
 //开启2G模块的电源芯片，当做急停按钮来使用
@@ -868,13 +774,13 @@ void YR4G_Power_Restart(void)
 
 //返回1   某条AT指令执行错误
 //返回0   成功连接上服务器
-u8 YR4G_Link_Server_AT(void)
+bool YR4G_Link_Server_AT(void)
 {
-	u8 ret = CMD_ACK_NONE;
+	bool ret = FALSE;
 	//操作AT指令进行联网操作
-	if((ret = Check_Module()) == CMD_ACK_OK)
-		if((ret = Disable_Echo()) == CMD_ACK_OK)
-			if((ret = Check_Network()) == CMD_ACK_OK)		
+	if(ret = CheckModule())
+		if(ret = GetVersion())
+#if 0			
 				if((ret = Check_SIM_Card()) == CMD_ACK_OK)
 					if((ret = Check_CSQ()) == CMD_ACK_OK)
 						if((ret = Get_ICCID()) == CMD_ACK_OK)
@@ -889,42 +795,35 @@ u8 YR4G_Link_Server_AT(void)
 															if((ret = Link_Server_AT(0, ipaddr, port)) == CMD_ACK_OK)
 																Reset_Device_Status(CMD_LOGIN);
 
+#endif
 	return ret;
 }
 
-u8 YR4G_Link_Server_Powerkey(void)
+bool YR4G_Link_Server_Powerkey(void)
 {
-	u8 count = 5;
-	u8 ret = CMD_ACK_NONE;	
-	while(count != 0)
+	u8 retry = RETRY_AT;
+	bool ret = FALSE;	
+	while(retry != 0)
 	{
-		ret = YR4G_Link_Server_AT();
-		if(ret != CMD_ACK_OK)
-		{
-			YR4G_Powerkey_Restart();
-		}
-		else
+		if(ret = YR4G_Link_Server_AT())
 			break;
-		count--;
+		YR4G_Powerkey_Restart();
+		retry--;
 	}
 
 	return ret;
 
 }
-u8 YR4G_Link_Server(void)
+bool YR4G_Link_Server(void)
 {
-	u8 count = 5;
-	u8 ret = CMD_ACK_NONE;
-	while(count != 0)
+	u8 retry = RETRY_AT;
+	bool ret = FALSE;
+	while(retry != 0)
 	{
-		ret = YR4G_Link_Server_Powerkey();
-		if(ret != CMD_ACK_OK)
-		{
-			YR4G_Power_Restart();
-		}
-		else
+		if(ret = YR4G_Link_Server_Powerkey())
 			break;
-		count--;
+		YR4G_Power_Restart();
+		retry--;
 	}
 	
 	return ret;

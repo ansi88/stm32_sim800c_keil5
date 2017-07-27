@@ -14,10 +14,12 @@ extern char password[LENGTH_PASSWORD_BUF];
 
 #define LENGTH_SYSINFO_BUF 20 
 extern char sysinfo[LENGTH_SYSINFO_BUF];
-#define LENGTH_ICCID_BUF 20
 
+#define LENGTH_ICCID_BUF 20
 extern char iccid[LENGTH_ICCID_BUF];
 
+#define LENGTH_CSQ_BUF 20
+extern char csq[LENGTH_CSQ_BUF];
 
 //存储设备重发命令的数组
 #define LENGTH_RESEND 35
@@ -45,28 +47,20 @@ extern char Device_OK_Buffer[LENGTH_DEVICE_OK];
 #define LENGTH_SMS_BACKUP        100
 
 /*********WJ*********/
-u8 	YR4G_Send_Cmd(char *cmd,char *ack,char *recv,u16 waittime);
+bool 	YR4G_Send_Cmd(char *cmd,char *ack,char *recv,u16 waittime);
 void Clear_buffer(char* buffer,u16 length);
 u8 Check_Xor_Sum(char* pBuf, u16 len);
 
-u8 	Check_Module(void);
-u8 	Disable_Echo(void);
-u8 	Check_SIM_Card(void);
-u8 	Check_CSQ(void);
-u8 	Get_ICCID(void);
-
-
-u8 	YR4G_GPRS_Adhere(void);
-u8	YR4G_GPRS_Set(void);
-u8 	YR4G_GPRS_Dispaly_IP(void);
-u8 	YR4G_GPRS_CIPSHUT(void);
-u8 	YR4G_GPRS_CGCLASS(void);
-u8 	YR4G_GPRS_CGDCONT(void);
+bool 	CheckModule(void);
+bool 	GetVersion(void);
+bool 	GetSysinfo(void);
+bool 	GetPassword(void);
+bool 	GetResetTime(void);
+bool 	GetCSQ(void);
+bool 	GetICCID(void);
 
 u8 	Link_Server_Echo(void);
 u8 	Link_Server_AT(u8 mode,const char* ipaddr,const char *port);
-
-u8 	Send_Data_To_Server(char* data);
 
 u8 	YR4G_GPRS_ON(void);
 u8	YR4G_GPRS_OFF(void);
@@ -100,11 +94,14 @@ u8 Send_Close_Device_Data(void);
 u8 Send_Close_Device_Data_Normal(void);
 u8 Send_Close_Device_Data_To_Server(void);
 char *YR4G_SMS_Create(char *sms_data, char *raw);
-u8 YR4G_SMS_Notif(char *phone, char *sms);
-	
-#define MSG_STR_LEN_OF_ID                                  7         //strlen("TRVAPXX")
+
+#define MSG_STR_DEVICE_HEADER       "TRVAP"
+#define MSG_STR_SERVER_HEADER       "TRVBP"
+
+#define MSG_STR_LEN_OF_HEADER                        5         //strlen("TRVXP")
+#define MSG_STR_LEN_OF_ID                                  2 
 #define MSG_STR_LEN_OF_LENGTH                         3
-#define MSG_STR_LEN_OF_SEQ	                               3
+#define MSG_STR_LEN_OF_SEQ                               3
 #define MSG_STR_LEN_OF_DUP                               2
 #define MSG_STR_LEN_OF_DEVICE                          3
 #define MSG_STR_LEN_OF_PORTS                           4
@@ -125,11 +122,11 @@ typedef struct
 	char atcmd_ack[LENGTH_ATCMD_ACK];
 	char device_on_cmd_string[LENGTH_DEVICE_OPEN_CMD];
 	char usart_data[LENGTH_USART_DATA];
-	char sms_backup[LENGTH_SMS_BACKUP];
 }t_DEV;
 
 typedef struct
 {
+	char header[MSG_STR_LEN_OF_HEADER+1];
 	char id[MSG_STR_LEN_OF_ID+1];
 	char length[MSG_STR_LEN_OF_LENGTH+1];
 	char seq[MSG_STR_LEN_OF_SEQ+1];
@@ -137,7 +134,16 @@ typedef struct
 	char device[MSG_STR_LEN_OF_DEVICE+1];
 	char ports[MSG_STR_LEN_OF_PORTS+1];
 	char period[MSG_STR_LEN_OF_PORTS_PERIOD+1];
-}msg_data;
+}MsgDev;
+
+typedef struct
+{
+	char header[MSG_STR_LEN_OF_HEADER+1];
+	char id[MSG_STR_LEN_OF_ID+1];
+	char length[MSG_STR_LEN_OF_LENGTH+1];
+	char seq[MSG_STR_LEN_OF_SEQ+1];
+	char dup[MSG_STR_LEN_OF_DUP+1];
+}MsgSrv;
 
 /*********WJ*********/
 extern t_DEV dev;

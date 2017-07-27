@@ -27,26 +27,6 @@ typedef struct
 } Device_Info;
 
 
-#define TEST     1
-
-#if TEST
-#define DEVICE1_PIN                         GPIO_Pin_11
-#define DEVICE1_GPIO_PORT                   GPIOF
-#define DEVICE1_GPIO_PORT_CLK               RCC_APB2Periph_GPIOF
-
-  
-#define DEVICE2_PIN                         GPIO_Pin_7
-#define DEVICE2_GPIO_PORT                   GPIOF
-#define DEVICE2_GPIO_PORT_CLK               RCC_APB2Periph_GPIOF
-
-#define DEVICE3_PIN                         GPIO_Pin_8
-#define DEVICE3_GPIO_PORT                   GPIOF
-#define DEVICE3_GPIO_PORT_CLK               RCC_APB2Periph_GPIOF
-
-#define DEVICE4_PIN                         GPIO_Pin_9
-#define DEVICE4_GPIO_PORT                   GPIOF
-#define DEVICE4_GPIO_PORT_CLK               RCC_APB2Periph_GPIOF
-#else
 #define DEVICE1_PIN                         GPIO_Pin_1
 #define DEVICE1_GPIO_PORT                   GPIOA
 #define DEVICE1_GPIO_PORT_CLK               RCC_APB2Periph_GPIOA
@@ -63,7 +43,6 @@ typedef struct
 #define DEVICE4_PIN                         GPIO_Pin_4
 #define DEVICE4_GPIO_PORT                   GPIOA
 #define DEVICE4_GPIO_PORT_CLK               RCC_APB2Periph_GPIOA
-#endif
 
 extern GPIO_TypeDef* GPIO_PORT[DEVICEn];
 extern const u16 GPIO_PIN[DEVICEn]; 

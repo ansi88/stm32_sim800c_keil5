@@ -16,7 +16,6 @@ enum{
 	AT_ENTM,
 	AT_WKMOD,
 	AT_CMDPW,
-	AT_STMSG,
 	AT_RSTIM,
 	AT_CSQ,
 	AT_SYSINFO,
@@ -77,21 +76,57 @@ const char ending='#';
 const char *Error="Err";
 
 char version[LENGTH_VERSION_BUF] = {0};
+char wkmod[LENGTH_WKMOD_BUF] = {0};
+char password[LENGTH_PASSWORD_BUF] = "usr.cn";
 char sysinfo[LENGTH_SYSINFO_BUF] = {0};
 char iccid[LENGTH_ICCID_BUF] = {0};
+u16 resetTime=0;
+char csq[LENGTH_CSQ_BUF] = {0};
 
 t_DEV dev={0};
 extern void Reset_Device_Status(u8 status);
 
-const char *msg_id[MSG_STR_ID_MAX]={"TRVAP00", "TRVAP01", "TRVAP03", "TRVAP05"};
-const char *msg_id_s[MSG_STR_ID_MAX]={"TRVBP00", "TRVBP01", "TRVBP03", "TRVBP05"};
+const char *msg_id[MSG_STR_ID_MAX]={"00", "01", "03", "05"};
+const char *msg_id_s[MSG_STR_ID_MAX]={"00", "01", "03", "05"};
 const char *msg_device="000";
 
+#define LINKA_PIN                         GPIO_Pin_11
+#define LINKA_GPIO_PORT                   GPIOF
+#define LINKA_GPIO_PORT_CLK               RCC_APB2Periph_GPIOF
 
+#define LINKB_PIN                         GPIO_Pin_7
+#define LINKB_GPIO_PORT                   GPIOF
+#define LINKB_GPIO_PORT_CLK               RCC_APB2Periph_GPIOF
 
+#define WORK_PIN                         GPIO_Pin_8
+#define WORK_GPIO_PORT                   GPIOF
+#define WORK_GPIO_PORT_CLK               RCC_APB2Periph_GPIOF
 
+#define RESET_PIN                         GPIO_Pin_9
+#define RESET_GPIO_PORT                   GPIOF
+#define RESET_GPIO_PORT_CLK               RCC_APB2Periph_GPIOF
 
-const char *passcode="usr.cn";
+void YR4G_Port_Init(void)
+{
+ 
+	GPIO_InitTypeDef  GPIO_InitStructure;
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOF, ENABLE);	 
+
+	GPIO_InitStructure.GPIO_Pin = RESET_PIN;				 
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 		
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;		 
+	GPIO_Init(RESET_GPIO_PORT, &GPIO_InitStructure);					
+
+	GPIO_InitStructure.GPIO_Pin = LINKA_PIN | LINKB_PIN | WORK_PIN;	
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING; 
+	GPIO_Init(LINKA_GPIO_PORT, &GPIO_InitStructure);
+}
+
+bool isWork(void)
+{
+	return (GPIO_ReadOutputDataBit(WORK_GPIO_PORT, WORK_PIN)==1?TRUE:FALSE);
+}
+
 char *DumpQueue(char * recv)
 {
 	u16 i=0;
@@ -117,7 +152,7 @@ bool YR4G_Send_Cmd(char *cmd,char *ack,char *recv,u16 waittime)
 	bool ret = FALSE; 
 	char cmd_str[100]={0};
 	
-	sprintf(cmd_str, "%s%s%s", passcode, "AT", cmd);
+	sprintf(cmd_str, "%s%s%s", password, "AT", cmd);
 	u3_printf("%s\r\n",cmd_str);//发送命令
 
 	if(ack&&waittime)		//需要等待应答
@@ -154,7 +189,8 @@ bool CheckModule(void)
 	bool ret = FALSE;
 	while(retry != 0)
 	{
-		if(ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100)) 
+		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
+		if(ret) 
 			break;
 		delay_ms(2000);
 		retry--;
@@ -172,7 +208,8 @@ bool GetVersion(void)
 	bool ret = FALSE;
 	while(retry != 0)
 	{
-		if(ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100)) 
+		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
+		if(ret) 
 		{
 			memset(version, 0, sizeof(version));
 			strcpy(version, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
@@ -187,7 +224,7 @@ bool GetVersion(void)
 	
 }
 
-bool CheckSysinfo(void)
+bool GetSysinfo(void)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SYSINFO;
@@ -195,11 +232,12 @@ bool CheckSysinfo(void)
 	bool ret = FALSE;
 	while(retry != 0)
 	{
-		if(ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100)) 
+		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
+		if(ret) 
 		{
-			memset(version, 0, sizeof(version));
-			strcpy(version, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
-			BSP_Printf("Version: %s\n", version);
+			memset(sysinfo, 0, sizeof(sysinfo));
+			strcpy(sysinfo, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
+			BSP_Printf("SysInfo: %s\n", sysinfo);
 			break;
 		}
 		delay_ms(2000);
@@ -208,148 +246,103 @@ bool CheckSysinfo(void)
 	
 	return ret;
 	
-	
 }
 
-//查看SIM是否正确检测到
-u8 CheckSIMCard(void)
+bool GetPassword(void)
 {
-	u8 count = COUNT_AT;
-	u8 ret = CMD_ACK_NONE;
+	u8 retry = RETRY_AT;
+	u8 id=AT_CMDPW;
+	char recv[50];	
+	bool ret = FALSE;
 
-	delay_ms(10000);	
-	while(count != 0)
+	while(retry != 0)
 	{
-		ret = YR4G_Send_Cmd("AT+ICCID?","+ICCID",1000);
-		if(ret == CMD_ACK_NONE)
+		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
+		if(ret) 
 		{
-			delay_ms(2000);
-		}
-		else if((ret == CMD_ACK_OK) || (ret == CMD_ACK_DISCONN))
+			memset(password, 0, sizeof(password));
+			strcpy(password, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
+			password[strlen(password)-4]=0;
+			BSP_Printf("Password: %s\n", password);
 			break;
-		
-		count--;
+		}
+		delay_ms(2000);
+		retry--;
 	}
 
-	//Clear_Usart3();
-	delay_ms(2000);	
 	return ret;
 }
 
-u8 CheckOPS(void)
+bool GetResetTime(void)
 {
-	u8 count = COUNT_AT;
-	u8 ret = CMD_ACK_NONE;
-	while(count != 0)
+	u8 retry = RETRY_AT;
+	u8 id=AT_RSTIM;
+	char recv[50];	
+	bool ret = FALSE;
+
+	while(retry != 0)
 	{
-		ret = YR4G_Send_Cmd("AT+COPS?","CHINA",500);
-		if(ret == CMD_ACK_NONE)
+		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
+		if(ret) 
 		{
-			delay_ms(2000);
-		}
-		else if((ret == CMD_ACK_OK) || (ret == CMD_ACK_DISCONN))
+			resetTime=atoi(strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
+			BSP_Printf("Reset Time: %d\n", resetTime);
 			break;
-		
-		count--;
+		}
+		delay_ms(2000);
+		retry--;
 	}
-	
-	//Clear_Usart3();	
+
 	return ret;
 }
 
 
 //查看天线质量
-u8 CheckCSQ(void)
+bool GetCSQ(void)
 {
-	u8 count = COUNT_AT;
-	u8 ret = CMD_ACK_NONE;
-	u8 *p1 = NULL; 
-	u8 *p2 = NULL;
-	u8 p[50] = {0}; 
-  	u8 signal=0;
+	u8 retry = RETRY_AT;
+	u8 id=AT_CSQ;
+	char recv[50];	
+	bool ret = FALSE;
 
-	while(signal < 5)
+	while(retry != 0)
 	{
-		delay_ms(2000);
-		while(count != 0)
+		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
+		if(ret) 
 		{
-			ret = YR4G_Send_Cmd("AT+CSQ","+CSQ:",200);
-			if(ret == CMD_ACK_NONE)
-			{
-				delay_ms(2000);
-			}
-			else if((ret == CMD_ACK_OK) || (ret == CMD_ACK_DISCONN))
-				break;
-			
-			count--;
-		}		
-		
-		if(ret == CMD_ACK_OK)
-		{
-			//AT指令已经指令完成，下面对返回值进行处理
-			p1=(u8*)strstr((const char*)(dev.usart_data),":");
-			p2=(u8*)strstr((const char*)(p1),",");
-			p2[0]=0;//加入结束符
-			signal = atoi((const char *)(p1+2));
-			//sprintf((char*)p,"信号质量:%s",p1+2);
-			sprintf((char*)p,"信号质量:%d",signal);
-			BSP_Printf("%s\r\n",p);
+			memset(csq, 0, sizeof(csq));
+			strcpy(csq, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
+			BSP_Printf("CSQ: %s\n", csq);
+			break;
 		}
-		//AT指令的回文已经处理完成，清零
-	}	
+		delay_ms(2000);
+		retry--;
+	}
+
 	return ret;
 }
 
-//获取SIM卡的ICCID
-//SIM卡的ICCID,全球唯一性，可以用作PCB的身份ID
-//打印USART3_RX_BUF的內容 調試用途
-		/*****  注意+号前面有两个空格
-  +CCID: 1,"898602B8191650216485"
-
-		OK
-		****/
-//这个函数还没有最终确认....
-u8 GetICCID(void)
+bool GetICCID(void)
 {
-	u8 index = 0;
-	char *p_temp = NULL;
-	u8 count = COUNT_AT;
-	u8 ret = CMD_ACK_NONE;
-	
-	while(count != 0)
+	u8 retry = RETRY_AT;
+	u8 id=AT_ICCID;
+	char recv[50];	
+	bool ret = FALSE;
+
+	while(retry != 0)
 	{
-		ret = YR4G_Send_Cmd("AT+CCID","OK",200);
-		if(ret == CMD_ACK_NONE)
+		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
+		if(ret) 
 		{
-			delay_ms(2000);
-		}
-		else if(ret == CMD_ACK_OK)
-		{
-			if(strstr(dev.usart_data, "AT+CCID")==NULL)
-				break;
-			else
-				Disable_Echo();
-		}
-		else if(ret == CMD_ACK_DISCONN)
+			memset(iccid, 0, sizeof(iccid));
+			strcpy(iccid, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
+			BSP_Printf("ICCID: %s\n", iccid);
 			break;
-		
-		count--;
+		}
+		delay_ms(2000);
+		retry--;
 	}
 
-	if(ret == CMD_ACK_OK)	
-	{
-		//AT指令已经指令完成，下面对返回值进行处理
-		p_temp = dev.usart_data;
-		memset(ICCID_BUF, 0, sizeof(ICCID_BUF));
-		//提取ICCID信息到全局变量ICCID_BUF
-		for(index = 0;index < LENGTH_ICCID_BUF;index++)
-		{
-			ICCID_BUF[index] = *(p_temp+OFFSET_ICCID+index);
-		}
-		BSP_Printf("ICCID_BUF:%s\r\n",ICCID_BUF);
-	}
-	//AT指令的回文已经处理完成，清零
-	//Clear_Usart3();
 	return ret;
 }
 
@@ -388,155 +381,11 @@ u8 YR4G_GPRS_OFF(void)
 	return ret;
 }
 
-//附着GPRS
-u8 YR4G_GPRS_Adhere(void)
-{
-	u8 count = COUNT_AT;
-	u8 ret = CMD_ACK_NONE;
-	char recv[50];			
-	while(count != 0)
-	{
-		ret = YR4G_Send_Cmd("AT+CGATT=1","OK",recv,1000);
-		if(ret == CMD_ACK_NONE)
-		{
-			delay_ms(2000);
-		}
-		else if((ret == CMD_ACK_OK) || (ret == CMD_ACK_DISCONN))
-			break;
-		
-		count--;
-	}
-	
-	//Clear_Usart3();	
-	delay_ms(2000);
-	return ret;
-}
-
-//设置为GPRS链接模式
-u8 YR4G_GPRS_Set(void)
-{
-	u8 count = COUNT_AT;
-	u8 ret = CMD_ACK_NONE;
-	char recv[50];			
-	while(count != 0)
-	{
-		ret = YR4G_Send_Cmd("AT+CIPCSGP=1,\"CMNET\"","OK",recv,600);
-		if(ret == CMD_ACK_NONE)
-		{
-			delay_ms(2000);
-		}
-		else if((ret == CMD_ACK_OK) || (ret == CMD_ACK_DISCONN))
-			break;
-		
-		count--;
-	}
-	
-	//Clear_Usart3();	
-	delay_ms(2000);	
-	return ret;
-}
-
-//设置接收数据显示IP头(方便判断数据来源)	
-u8 YR4G_GPRS_Dispaly_IP(void)
-{
-	u8 count = COUNT_AT;
-	u8 ret = CMD_ACK_NONE;
-	char recv[50];			
-	while(count != 0)
-	{
-		ret = YR4G_Send_Cmd("AT+CIPHEAD=1","OK",recv,300);
-		if(ret == CMD_ACK_NONE)
-		{
-			delay_ms(2000);
-		}
-		else if((ret == CMD_ACK_OK) || (ret == CMD_ACK_DISCONN))
-			break;
-		
-		count--;
-	}
-	
-	//Clear_Usart3();	
-	return ret;
-}
-
-//关闭移动场景 
-u8 YR4G_GPRS_CIPSHUT(void)
-{
-	u8 count = COUNT_AT;
-	u8 ret = CMD_ACK_NONE;
-	char recv[50];			
-	while(count != 0)
-	{
-		ret = YR4G_Send_Cmd("AT+CIPSHUT","SHUT OK",recv,1000);
-		if(ret == CMD_ACK_NONE)
-		{
-			delay_ms(2000);
-		}
-		else if((ret == CMD_ACK_OK) || (ret == CMD_ACK_DISCONN))
-			break;
-		
-		count--;
-	}
-	
-	//Clear_Usart3();	
-	delay_ms(2000);	
-	return ret;
-}
-
-//设置GPRS移动台类别为B,支持包交换和数据交换 
-u8 YR4G_GPRS_CGCLASS(void)
-{
-	u8 count = COUNT_AT;
-	u8 ret = CMD_ACK_NONE;
-	char recv[50];			
-	while(count != 0)
-	{
-		ret = YR4G_Send_Cmd("AT+CGCLASS=\"B\"","OK",recv,300);
-		if(ret == CMD_ACK_NONE)
-		{
-			delay_ms(2000);
-		}
-		else if((ret == CMD_ACK_OK) || (ret == CMD_ACK_DISCONN))
-			break;
-		
-		count--;
-	}
-	
-	//Clear_Usart3();	
-	delay_ms(2000);	
-	return ret;
-}
-
-
-//设置PDP上下文,互联网接协议,接入点等信息
-u8 YR4G_GPRS_CGDCONT(void)
-{
-	u8 count = COUNT_AT;
-	u8 ret = CMD_ACK_NONE;
-	char recv[50];			
-	while(count != 0)
-	{
-		ret = YR4G_Send_Cmd("AT+CGDCONT=1,\"IP\",\"CMNET\"","OK",recv,600);
-		if(ret == CMD_ACK_NONE)
-		{
-			delay_ms(2000);
-		}
-		else if((ret == CMD_ACK_OK) || (ret == CMD_ACK_DISCONN))
-			break;
-		
-		count--;
-	}
-	
-	//Clear_Usart3();	
-	delay_ms(2000);	
-	return ret;
-}
-
 u8 Link_Server_AT(u8 mode,const char* ipaddr,const char *port)
 {
 	u8 count = COUNT_AT;
 	u8 ret = CMD_ACK_NONE;
-	u8 p[100]={0};
+	char p[100]={0};
 	char recv[50];			
 	if(mode)
 		;
@@ -576,43 +425,6 @@ u8 Link_Server_AT(u8 mode,const char* ipaddr,const char *port)
 	return ret;
 }
 
-u8 Send_Data_To_Server(char* data)
-{
-	u8 ret = CMD_ACK_NONE;
-	char recv[50];		
-	u3_printf(data)
-	
-	return ret;
-}
-
-#if 0
-u8 Check_Link_Status(void)
-{
-	u8 count = 0;
-
-	while(YR4G_Send_Cmd("AT+CMSTATE","CONNECTED",500))//检测是否应答AT指令 
-	{
-		if(count < COUNT_AT)
-		{
-			count += 1;
-			delay_ms(2000);			
-		}
-		else
-		{
-//AT指令已经尝试了COUNT_AT次，仍然失败，断电YR4G，开启TIME_AT分钟的定时，定时时间到，再次链接服务器
-//目前代码中没有调用本函数，也没有对Flag_TIM6_2_S的判定代码，所以暂时屏蔽掉Flag_TIM6_2_S的赋值
-			//Flag_TIM6_2_S = 0xAA;
-			return 1;		
-		}
-	}	
-
-		//AT指令的回文不需要处理，清零
-	Clear_Usart3();
-	return 0;
-
-}
-#endif
-
 char *YR4G_SMS_Create(char *sms_data, char *raw)
 {
 	sprintf((char*)sms_data,"Reset Type: %d, Dev Status: %d, Msg expect: %d, Msg recv: %d, HB: %d, HB TIMER: %d, Msg TIMEOUT: %d, Msg: \"%s\", AT-ACK: %s\r\n", dev.need_reset, 
@@ -620,7 +432,6 @@ char *YR4G_SMS_Create(char *sms_data, char *raw)
 	return sms_data;
 }
 
-//开启2G模块的电源芯片，当做急停按钮来使用
 void YR4G_POWER_ON(void)
 {
 	u8 i= 0;
@@ -656,8 +467,6 @@ void YR4G_POWER_OFF(void)
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;		 
 	GPIO_Init(GPIOB, &GPIO_InitStructure);	
 	
-
-
 	//电源芯片的失能
 	GPIO_ResetBits(GPIOB,GPIO_Pin_8);	
 
@@ -777,25 +586,15 @@ void YR4G_Power_Restart(void)
 bool YR4G_Link_Server_AT(void)
 {
 	bool ret = FALSE;
-	//操作AT指令进行联网操作
 	if(ret = CheckModule())
 		if(ret = GetVersion())
-#if 0			
-				if((ret = Check_SIM_Card()) == CMD_ACK_OK)
-					if((ret = Check_CSQ()) == CMD_ACK_OK)
-						if((ret = Get_ICCID()) == CMD_ACK_OK)
-							//if((ret = Check_OPS()) == CMD_ACK_OK)
-								//if((ret = YR4G_GPRS_OFF()) == CMD_ACK_OK)
-									if((ret = YR4G_GPRS_CIPSHUT()) == CMD_ACK_OK)
-										if((ret = YR4G_GPRS_CGCLASS()) == CMD_ACK_OK)
-											if((ret = YR4G_GPRS_CGDCONT()) == CMD_ACK_OK)
-												//if((ret = YR4G_GPRS_Adhere()) == CMD_ACK_OK)
-													if((ret = YR4G_GPRS_Set()) == CMD_ACK_OK)
-														//if((ret = YR4G_GPRS_Dispaly_IP()) == CMD_ACK_OK)
-															if((ret = Link_Server_AT(0, ipaddr, port)) == CMD_ACK_OK)
-																Reset_Device_Status(CMD_LOGIN);
+			if(ret = GetPassword())
+				if(ret = GetCSQ())
+					if(ret = GetICCID())
+						if(ret = GetResetTime())
+							if(ret = GetSysinfo())
+								Reset_Device_Status(CMD_LOGIN);
 
-#endif
 	return ret;
 }
 
@@ -832,8 +631,8 @@ bool YR4G_Link_Server(void)
 
 u8 Get_Device_Upload_Str(u8 msg_str_id, char *msg_str)
 {
-	msg_data *msg=(msg_data *)msg_str;
-	char *p_left=msg_str+sizeof(msg_data);
+	MsgDev *msg=(MsgDev*)msg_str;
+	char *p_left=msg_str+sizeof(MsgDev);
 	u8 Result_Validation = 0;
 	u8 i;
 
@@ -843,6 +642,9 @@ u8 Get_Device_Upload_Str(u8 msg_str_id, char *msg_str)
 	if(msg_str_id>=MSG_STR_ID_MAX)
 		return 0;
 
+	strncpy(msg->id, MSG_STR_DEVICE_HEADER, MSG_STR_LEN_OF_HEADER);
+	msg->header[MSG_STR_LEN_OF_HEADER] = delim;
+	
 	strncpy(msg->id, msg_id[msg_str_id], MSG_STR_LEN_OF_ID);
 	msg->id[MSG_STR_LEN_OF_ID] = delim;
 
@@ -880,7 +682,7 @@ u8 Get_Device_Upload_Str(u8 msg_str_id, char *msg_str)
 		case MSG_STR_ID_LOGIN:
 			strcpy(p_left, "YR4G_");
 			p_left += strlen("YR4G_");
-			strncpy(p_left, ICCID_BUF, LENGTH_ICCID_BUF);
+			strncpy(p_left, iccid, LENGTH_ICCID_BUF);
 			p_left += LENGTH_ICCID_BUF;
 			*p_left++ = delim;
 		break;
@@ -895,7 +697,7 @@ u8 Get_Device_Upload_Str(u8 msg_str_id, char *msg_str)
 		break;
 	}
 
-  	sprintf(msg->length,"%03d",strlen(msg_str)-sizeof(msg->id)-sizeof(msg->length)+5);
+  	sprintf(msg->length,"%03d",strlen(msg_str)-sizeof(msg->header)-sizeof(msg->id)-sizeof(msg->length)+5);
 	msg->length[MSG_STR_LEN_OF_LENGTH] = delim;	
 	
 	//添加校验和
@@ -922,10 +724,7 @@ u8 Send_Login_Data(void)
 	if(Get_Device_Upload_Str(MSG_STR_ID_LOGIN, Login_buf) != 0)
 	{
 		BSP_Printf("Login_Buffer:%s\r\n",Login_buf);	
-		//Get_Login_Data();
-		//BSP_Printf("Login_Buffer:%s\r\n",Login_Buffer);
-		//ret = Send_Data_To_Server(Login_Buffer);
-		ret = Send_Data_To_Server(Login_buf);
+		u3_printf(Login_buf);
 	}
 	return ret;
 }
@@ -985,9 +784,7 @@ u8 Send_Heart_Data(void)
 	if(Get_Device_Upload_Str(MSG_STR_ID_HB, HB_buf)!=0)
 	{
 		BSP_Printf("New HB:%s\r\n",HB_buf);		
-		//Get_Heart_Data();
-		//ret = Send_Data_To_Server(Heart_Buffer);
-		ret = Send_Data_To_Server(HB_buf);
+		u3_printf(HB_buf);
 	}
 	return ret;
 }
@@ -1027,53 +824,16 @@ u8 Send_Heart_Data_To_Server(void)
 }
 
 //发送接收业务指令完成回文给服务器
-u8 Send_Open_Device_Data(void)
+bool Send_Open_Device_Data(void)
 {
-	u8 ret = CMD_ACK_NONE;
+	bool ret = FALSE;
 	char Open_Device_buf[100]={0};
 	if(Get_Device_Upload_Str(MSG_STR_ID_OPEN, Open_Device_buf)!=0)
 	{
-		BSP_Printf("New Open:%s\r\n",Open_Device_buf);		
-		//Get_Open_Device_Data();
-		//ret = Send_Data_To_Server(Enbale_Buffer);
-		ret = Send_Data_To_Server(Open_Device_buf);
+		BSP_Printf("Open:%s\r\n",Open_Device_buf);		
+		u3_printf(Open_Device_buf);
+		ret = TRUE;
 	}
-	return ret;
-}
-
-u8 Send_Open_Device_Data_Normal(void)
-{
-	u8 temp = 0;
-	u8 ret = CMD_ACK_NONE;
-	u8 count = 5;	//执行count次，还不成功的话，就重启GPRS
-	while(count != 0)
-	{
-		//Clear_Usart3();
-		ret= Send_Open_Device_Data();
-		//Clear_Usart3();
-		if(ret == CMD_ACK_NONE)
-		{
-			//发送数据失败
-			for(temp = 0; temp < 30; temp++)
-			{
-				delay_ms(1000);
-			}
-		}
-		else if((ret == CMD_ACK_OK) ||(ret == CMD_ACK_DISCONN))
-			break;
-		count -= 1;
-	}
-	
-	return ret;
-
-}
-
-//这个流程其实是一条设备回文，设备在CMD_NONE 状态的时候(当前没有处理任何消息)才会进入此流程
-//当然硬件的开关在收到服务器指令时就需要完成，不依赖于这条消息什么时候发送    
-u8 Send_Open_Device_Data_To_Server(void)
-{
-	u8 ret = CMD_ACK_NONE;
-	ret = Send_Open_Device_Data_Normal();	
 	return ret;
 }
 
@@ -1085,9 +845,7 @@ u8 Send_Close_Device_Data(void)
 	if(Get_Device_Upload_Str(MSG_STR_ID_CLOSE, Close_Device_buf)!=0)
 	{
 		BSP_Printf("New Close:%s\r\n",Close_Device_buf);		
-		//Get_Close_Device_Data();
-		//ret = Send_Data_To_Server(Device_OK_Buffer);
-		ret = Send_Data_To_Server(Close_Device_buf);
+		u3_printf(Close_Device_buf);
 	}
 	return ret;
 }

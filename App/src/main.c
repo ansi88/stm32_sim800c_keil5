@@ -67,7 +67,13 @@ void Reset_Device_Status(u8 status)
 int main(void)
 {
 	u8 i;
-	char sms_data[100];
+	char recv[100];
+	char *uart_data_left;
+	char *p, *p1;	
+	u16 length = 0; 
+	u8 sum = 0;
+	u8 sum_msg = 0;	
+	MsgSrv *msgSrv=NULL;
 	//设置中断优先级分组为组2：2位抢占优先级，2位响应优先级
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2); 
 	/* Enable GPIOx Clock */
@@ -143,7 +149,50 @@ int main(void)
 	{
 		//BSP_Printf("Main_S Dev Status: %d, Msg expect: %d, Msg recv: %d\r\n", dev.status, dev.msg_expect, dev.msg_recv);
 		//BSP_Printf("Main_S HB: %d, HB TIMER: %d, Msg TIMEOUT: %d\r\n", dev.hb_count, dev.hb_timer, dev.msg_timeout);
-	
+
+		if(DumpQueue(recv) != NULL)
+		{
+			uart_data_left = (char *)recv;
+			while((p=strstr(uart_data_left, MSG_STR_SERVER_HEADER))!=NULL)
+			{
+				if((p1=strstr((const char*)p,"#"))!=NULL)
+				{
+					//调用异或和函数来校验回文	
+					length = p1 - p +1;
+					//校验数据
+					sum = Check_Xor_Sum((char *)(p),length-5);
+					BSP_Printf("sum:%d\r\n",sum);
+					
+					//取字符串中的校验值,校验值转化为数字，并打印
+					sum_msg = atoi((const char *)(p+length-5));	
+					BSP_Printf("sum_msg:%d\r\n",sum_msg);
+					
+					//回文正确
+					if(sum == sum_msg)
+					{
+						msgSrv = (MsgSrv *)p;
+						switch(atoi(msgSrv->id))
+						{
+							case MSG_STR_ID_OPEN:
+							{
+								BSP_Printf("Recv Seq[%d] Dup[%d] from Server\n", atoi(msgSrv->seq), atoi(msgSrv->dup));
+								dev.msg_seq_s = atoi(p_temp);
+								Send_Open_Device_Data();
+								break;
+							}
+							case MSG_STR_ID_OPEN:
+							{
+
+							}
+						}
+					}
+					uart_data_left = p1;
+				}
+				else
+					break;
+			}		
+		}
+		
 		if(dev.need_reset != ERR_NONE)
 		{
 			memset(sms_data, 0, sizeof(sms_data));

@@ -48,9 +48,9 @@ extern char Device_OK_Buffer[LENGTH_DEVICE_OK];
 
 /*********WJ*********/
 bool 	YR4G_Send_Cmd(char *cmd,char *ack,char *recv,u16 waittime);
-void Clear_buffer(char* buffer,u16 length);
 u8 Check_Xor_Sum(char* pBuf, u16 len);
 
+char *DumpQueue(char * recv);
 bool 	CheckModule(void);
 bool 	GetVersion(void);
 bool 	GetSysinfo(void);
@@ -58,12 +58,13 @@ bool 	GetPassword(void);
 bool 	GetResetTime(void);
 bool 	GetCSQ(void);
 bool 	GetICCID(void);
-
-u8 	Link_Server_Echo(void);
-u8 	Link_Server_AT(u8 mode,const char* ipaddr,const char *port);
-
-u8 	YR4G_GPRS_ON(void);
-u8	YR4G_GPRS_OFF(void);
+bool SaveSetting(void);
+bool SocketParam(u8 rw, u8 sock, u8 *protocol, u8 *addr, u8 *port);
+bool SocketEnable(u8 rw, u8 sock, bool enable);
+bool SocketSL(u8 rw, u8 sock, u8 sl);
+bool isConnected(u8 sock);
+bool SocketTO(u8 sock);
+	
 void YR4G_POWER_ON(void);
 void YR4G_POWER_OFF(void);
 void YR4G_PWRKEY_ON(void);
@@ -73,14 +74,11 @@ void YR4G_GPRS_Restart(void);
 void YR4G_Powerkey_Restart(void);
 void YR4G_Power_Restart(void);
 
-
 bool YR4G_Link_Server(void);
 bool YR4G_Link_Server_AT(void);
 bool YR4G_Link_Server_Powerkey(void);
 
-u8 Send_Login_Data(void);
-u8 Send_Login_Data_Normal(void);
-u8 Send_Login_Data_To_Server(void);
+void Send_Login_Data(void);
 
 u8 Send_Heart_Data(void);
 u8 Send_Heart_Data_Normal(void);
@@ -122,6 +120,7 @@ typedef struct
 	char atcmd_ack[LENGTH_ATCMD_ACK];
 	char device_on_cmd_string[LENGTH_DEVICE_OPEN_CMD];
 	char usart_data[LENGTH_USART_DATA];
+	char sms_backup[LENGTH_SMS_BACKUP];	
 }t_DEV;
 
 typedef struct
@@ -143,6 +142,7 @@ typedef struct
 	char length[MSG_STR_LEN_OF_LENGTH+1];
 	char seq[MSG_STR_LEN_OF_SEQ+1];
 	char dup[MSG_STR_LEN_OF_DUP+1];
+	char device[MSG_STR_LEN_OF_DEVICE+1];	
 }MsgSrv;
 
 /*********WJ*********/
@@ -208,7 +208,8 @@ enum
 enum
 {
 	ERR_NONE = 0,
-		
+
+	ERR_INIT_MODULE,
 	ERR_INIT_LINK_SERVER,
 	ERR_INIT_SEND_LOGIN,
 	ERR_RESET_LINK_SERVER,     
@@ -224,6 +225,34 @@ enum
 
 	ERR_SEND_CMD,	
 };
+
+enum
+{
+	READ,
+	WRITE,
+};
+
+typedef struct
+{
+	bool isOn;
+	bool isConnected;	
+	u8 timeout;
+	char *sl;
+	char *protocol;
+	char addr[50];
+	char port[10];
+}SockSetting;
+
+enum
+{
+	SOCK_A,
+	SOCK_B,
+	SOCK_C,
+	SOCK_D,
+	SOCK_MAX,
+};
+
+extern SockSetting socketSetting[SOCK_MAX];
 
 extern const char *msg_id[MSG_STR_ID_MAX];
 extern const char *msg_id_s[MSG_STR_ID_MAX];

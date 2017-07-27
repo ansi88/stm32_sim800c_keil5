@@ -95,15 +95,10 @@ int main(void)
 #endif
 	
 	usart3_init(115200);                            //串口3,对接YR4G
+	
 	dev.msg_recv = 0;	
 	Reset_Device_Status(CMD_NONE);
-	//清零USART3_RX_BUF和USART3_RX_STA
-	//在使用串口3之前先清零，排除一些意外情况
 	Clear_Usart3();
-	
-	//开机
-	//包含2G模块电源芯片的软件使能和2G模块的PWRKEY的使能
-	//YR4G_POWER_ON函数是作为急停使用
 	YR4G_POWER_ON();  
 	YR4G_PWRKEY_ON();
 	BSP_Printf("YR4GC开机完成\r\n");
@@ -116,31 +111,18 @@ int main(void)
 		BSP_Printf("Power[%d]: %d\n", i, Device_Power_Status(i));
 	}
 	
-	if(!YR4G_Link_Server())
+	while(!YR4G_Link_Server())
 	{
-		BSP_Printf("INIT: Failed to connect to Server\r\n");
-		dev.need_reset = ERR_INIT_LINK_SERVER;
-		//while(1){闪烁LED}
+		BSP_Printf("INIT: YR Module not working\r\n");
+		dev.need_reset = ERR_INIT_MODULE;
 	}
 
-	while(1);
-	
-	BSP_Printf("YR4GC连接服务器完成\r\n");
+	BSP_Printf("YR4GC Connect to Network\r\n");
 
-	if(Send_Login_Data_To_Server() != CMD_ACK_OK)
-	{
-		BSP_Printf("INIT: Failed to Send Login Data to Server\r\n");
-		dev.need_reset = ERR_INIT_SEND_LOGIN;
-		//while(1){闪烁LED}
-	}
-	BSP_Printf("YR4GC发送登录信息给服务器完成\r\n");
+	Send_Login_Data();
 
-	//程序运行至此，已经成功发送登录信息给服务器，下面开启定时器，等待服务器的回文信息
-	//清零串口3的数据，等待接收服务器的数据
-	Clear_Usart3();
-	
-	//开启定时器，每50ms查询一次服务器是否有下发命令
-	//主循环TIMER
+	BSP_Printf("YR4GC Send Login\r\n");
+
 	TIM6_Int_Init(9999,2399);						     // 1s中断
 	TIM_SetCounter(TIM6,0); 
 	TIM_Cmd(TIM6,ENABLE);
@@ -170,20 +152,60 @@ int main(void)
 					//回文正确
 					if(sum == sum_msg)
 					{
+						u8 seq = atoi(msgSrv->seq);
 						msgSrv = (MsgSrv *)p;
+						BSP_Printf("Recv Seq[%d] Dup[%d] from Server\n", seq, atoi(msgSrv->dup));
+
 						switch(atoi(msgSrv->id))
 						{
 							case MSG_STR_ID_OPEN:
 							{
-								BSP_Printf("Recv Seq[%d] Dup[%d] from Server\n", atoi(msgSrv->seq), atoi(msgSrv->dup));
-								dev.msg_seq_s = atoi(p_temp);
-								Send_Open_Device_Data();
-								break;
-							}
-							case MSG_STR_ID_OPEN:
-							{
+								if(seq <= dev.msg_seq_s)
+									break;
+								else
+									dev.msg_seq_s = seq;
+								
+								char *interfaces, *periods;
+								bool interface_on[DEVICEn]={FALSE};
+								int period_on[DEVICEn]={0};
+								//根据当前设备状态进行开启(GPIO)，已经开了的就不处理了
+								//开启设备并本地计时
+								interfaces = strtok(p+sizeof(MsgSrv), ",");
+								if(interfaces)
+								{						
+									//BSP_Printf("ports: %s\n", interfaces);
+								}
+								for(i=DEVICE_01; i<DEVICEn; i++)
+									interface_on[i]=(interfaces[i]=='1')?TRUE:FALSE;
+									
+								periods = strtok(NULL, ",");
+								if(periods)
+								{						
+									//BSP_Printf("periods: %s\n", periods);	
+								}
+								sscanf(periods, "%02d%02d%02d%02d,", &period_on[DEVICE_01], 
+									&period_on[DEVICE_02], &period_on[DEVICE_03], &period_on[DEVICE_04]);
 
+								for(i=DEVICE_01; i<DEVICEn; i++)
+								{
+									if(interface_on[i] && (g_device_status[i].power == OFF))
+									{
+										g_device_status[i].total = period_on[i] * NUMBER_TIMER_1_MINUTE;
+										g_device_status[i].passed = 0;
+										g_device_status[i].power = ON;		
+										Device_ON(i);	
+									}			
+								}
+
+								Send_Open_Device_Data();
 							}
+							break;
+							case MSG_STR_ID_CLOSE:
+								
+							break;
+							default:
+							break;
+
 						}
 					}
 					uart_data_left = p1;
@@ -192,7 +214,8 @@ int main(void)
 					break;
 			}		
 		}
-		
+
+#if 0		
 		if(dev.need_reset != ERR_NONE)
 		{
 			memset(sms_data, 0, sizeof(sms_data));
@@ -343,7 +366,7 @@ int main(void)
 				break;
 			}
 		}
-		
+#endif		
 		//BSP_Printf("Main_E Dev Status: %d, Msg expect: %d, Msg recv: %d\r\n", dev.status, dev.msg_expect, dev.msg_recv);
 		//BSP_Printf("Main_E HB: %d, HB TIMER: %d, Msg TIMEOUT: %d\r\n", dev.hb_count, dev.hb_timer, dev.msg_timeout);
 	}

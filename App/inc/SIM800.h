@@ -35,7 +35,6 @@ extern char Device_OK_Buffer[LENGTH_DEVICE_OK];
 
 /*********WJ*********/
 u8 	SIM800_Send_Cmd(u8 *cmd,u8 *ack,u16 waittime);
-void Clear_buffer(char* buffer,u16 length);
 u8 Check_Xor_Sum(char* pBuf, u16 len);
 
 u8 	Check_Module(void);

@@ -112,7 +112,7 @@ int main(void)
 	
 	BSP_Printf("SIM800C连接服务器完成\r\n");
 
-	if(Send_Login_Data_To_Server() != CMD_ACK_OK)
+	if(Send_Login_Data_To_Server() != CMD_ACK_OK)	
 	{
 		BSP_Printf("INIT: Failed to Send Login Data to Server\r\n");
 		dev.need_reset = ERR_INIT_SEND_LOGIN;

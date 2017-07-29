@@ -27,7 +27,7 @@ typedef struct
 } Device_Info;
 
 
-#define TEST     1
+#define TEST     0
 
 #if TEST
 #define DEVICE1_PIN                         GPIO_Pin_11

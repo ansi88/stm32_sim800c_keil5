@@ -9,7 +9,7 @@
 extern void Reset_Device_Status(u8 status);
 
 //定时器6中断服务程序		    
-void TIM6_IRQHandler(void)
+void TIM6_DAC_IRQHandler(void)
 {
 	u8 index;
 	if(TIM_GetITStatus(TIM6, TIM_IT_Update) != RESET)					  //是更新中断
@@ -324,7 +324,7 @@ void TIM6_Int_Init(u16 arr,u16 psc)
 	
 	//TIM_Cmd(TIM6,ENABLE);//开启定时器6
 	
-	NVIC_InitStructure.NVIC_IRQChannel = TIM6_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannel = TIM6_DAC_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2 ;//抢占优先级0
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;		//子优先级3
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//IRQ通道使能

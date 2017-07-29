@@ -538,7 +538,7 @@ u8 Send_Data_To_Server(char* data)
 	if(dev.need_reset != ERR_NONE)
 	{
 		BSP_Printf("Send_Data_To_Server: Need Reset\r\n");	
-		ret = CMD_ACK_DISCONN;
+		return CMD_ACK_DISCONN;
 	}
 	else
 	{
@@ -878,6 +878,7 @@ u8 SIM800_Link_Server_AT(void)
 															if((ret = Link_Server_AT(0, ipaddr, port)) == CMD_ACK_OK)
 																Reset_Device_Status(CMD_LOGIN);
 
+
 	return ret;
 }
 
@@ -1012,9 +1013,6 @@ u8 Send_Login_Data(void)
 	if(Get_Device_Upload_Str(MSG_STR_ID_LOGIN, Login_buf) != 0)
 	{
 		BSP_Printf("Login_Buffer:%s\r\n",Login_buf);	
-		//Get_Login_Data();
-		//BSP_Printf("Login_Buffer:%s\r\n",Login_Buffer);
-		//ret = Send_Data_To_Server(Login_Buffer);
 		ret = Send_Data_To_Server(Login_buf);
 	}
 	return ret;
@@ -1024,7 +1022,7 @@ u8 Send_Login_Data_Normal(void)
 {
 	u8 temp = 0;
 	u8 ret = CMD_ACK_NONE;
-	u8 count = 5;	//执行count次，还不成功的话，就重启GPRS
+	u8 count = COUNT_AT;	//执行count次，还不成功的话，就重启GPRS
 	while(count != 0)
 	{
 		//Clear_Usart3();
@@ -1075,8 +1073,6 @@ u8 Send_Heart_Data(void)
 	if(Get_Device_Upload_Str(MSG_STR_ID_HB, HB_buf)!=0)
 	{
 		BSP_Printf("New HB:%s\r\n",HB_buf);		
-		//Get_Heart_Data();
-		//ret = Send_Data_To_Server(Heart_Buffer);
 		ret = Send_Data_To_Server(HB_buf);
 	}
 	return ret;
@@ -1086,7 +1082,7 @@ u8 Send_Heart_Data_Normal(void)
 {
 	u8 temp = 0;
 	u8 ret = CMD_ACK_NONE;
-	u8 count = 5;	//执行count次，还不成功的话，就重启GPRS
+	u8 count = COUNT_AT;	//执行count次，还不成功的话，就重启GPRS
 	while(count != 0)
 	{
 		//Clear_Usart3();
@@ -1135,7 +1131,7 @@ u8 Send_Open_Device_Data_Normal(void)
 {
 	u8 temp = 0;
 	u8 ret = CMD_ACK_NONE;
-	u8 count = 5;	//执行count次，还不成功的话，就重启GPRS
+	u8 count = COUNT_AT;	//执行count次，还不成功的话，就重启GPRS
 	while(count != 0)
 	{
 		//Clear_Usart3();
@@ -1186,7 +1182,7 @@ u8 Send_Close_Device_Data_Normal(void)
 {
 	u8 temp = 0;
 	u8 ret = CMD_ACK_NONE;
-	u8 count = 5;	//执行count次，还不成功的话，就重启GPRS
+	u8 count = COUNT_AT;	//执行count次，还不成功的话，就重启GPRS
 	while(count != 0)
 	{
 		//Clear_Usart3();
@@ -1214,15 +1210,6 @@ u8 Send_Close_Device_Data_To_Server(void)
 	u8 ret = CMD_ACK_NONE;
 	ret = Send_Close_Device_Data_Normal();
 	return ret;
-}
-
-void Clear_buffer(char* buffer,u16 length)
-{
-	u16 i = 0;
-	for(i = 0; i < length;i++)
-	{
-		buffer[i] = 0;
-	}
 }
 
 //////////////异或校验和函数///////

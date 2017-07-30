@@ -17,28 +17,17 @@ void TIM6_IRQHandler(void)
 	{	
 		TIM_ClearITPendingBit(TIM6, TIM_IT_Update);  					//清除TIM6更新中断标志
 
-		//BSP_Printf("TIM6_S Dev Status: %d, Msg expect: %d, Msg recv: %d\r\n", dev.status, dev.msg_expect, dev.msg_recv);
-		//BSP_Printf("TIM6_S HB: %d, HB TIMER: %d, Msg TIMEOUT: %d\r\n", dev.hb_count, dev.hb_timer, dev.msg_timeout);
-
-	
-		//再次发送心跳包的定时计数
-		if(dev.hb_timer >= HB_1_MIN)
+		if(!dev.hb_ready)
 		{
-			//for(index=DEVICE_01; index<DEVICEn; index++)
-			{
-				//BSP_Printf("TIM6 Dev[%d].total: %d, passed: %d\n", index, g_device_status[index].total, g_device_status[index].passed);
-			}
-			
-			if(dev.status == CMD_IDLE)
-			{
+			if(dev.hb_timer >= HB_1_MIN)
+			{				
 				BSP_Printf("TIM6: HB Ready\r\n");
-				dev.msg_recv = 0;	
-				Reset_Device_Status(CMD_HB);
+				dev.hb_ready = TRUE;
+				dev.hb_timer = 0;
 			}
-			dev.hb_timer = 0;
+			else
+				dev.hb_timer++;
 		}
-		else
-			dev.hb_timer++;
 
 		for(index=DEVICE_01; index<DEVICEn; index++)
 		{
@@ -59,12 +48,8 @@ void TIM6_IRQHandler(void)
 							g_device_status[index].passed=g_device_status[index].total=0;
 							g_device_status[index].power=OFF;
 							Device_OFF(index);
-							if(dev.status == CMD_IDLE)
-							{
-								BSP_Printf("TIM6: 设置设备状态为CLOSE_DEVICE\r\n");
-								dev.msg_recv = 0;
-								Reset_Device_Status(CMD_CLOSE_DEVICE);
-							}
+							BSP_Printf("TIM6: 设置设备状态为CLOSE_DEVICE\r\n");
+							dev.portClosed |= 1<<index;
 						}
 						else
 							g_device_status[index].passed++;
@@ -83,59 +68,16 @@ void TIM6_IRQHandler(void)
 			}
 		}
 	
-		switch(dev.status)
+		if(dev.wait_reply)
 		{
-			case CMD_LOGIN:
-				if(dev.msg_expect & MSG_DEV_LOGIN)
-				{
-					if(dev.reply_timeout >= HB_1_MIN)
-					{
-						dev.msg_expect &= ~MSG_DEV_LOGIN;
-						dev.reply_timeout = 0;
-						dev.msg_timeout++;
-						BSP_Printf("[%d]: Ready to send Msg MSG_DEV_LOGIN again\n", dev.msg_timeout);
-					}
-					dev.reply_timeout++;
-				}
-			break;
-			case CMD_HB:
-				if(dev.msg_expect & MSG_DEV_HB)
-				{
-					if(dev.reply_timeout >= HB_1_MIN)
-					{
-						dev.msg_expect &= ~MSG_DEV_HB;
-						dev.reply_timeout = 0;
-						dev.msg_timeout++;
-						BSP_Printf("[%d]: Ready to send Msg MSG_DEV_HB again\n", dev.msg_timeout);
-					}
-					dev.reply_timeout++;
-				}				
-			break;
-			case CMD_CLOSE_DEVICE:
-				if(dev.msg_expect & MSG_DEV_CLOSE)
-				{
-					if(dev.reply_timeout >= HB_1_MIN)
-					{
-						dev.msg_expect &= ~MSG_DEV_CLOSE;
-						dev.reply_timeout = 0;
-						dev.msg_timeout++;
-						BSP_Printf("[%d]: Ready to send Msg MSG_DEV_CLOSE again\n", dev.msg_timeout);
-					}
-					dev.reply_timeout++;
-				}				
-			break;
-			default:
-			break;
+			if(dev.reply_timeout >= HB_1_MIN)
+			{
+				dev.reply_timeout = 0;
+				dev.msg_timeout++;
+				BSP_Printf("[%d]: Ready to send Msg MSG_DEV_LOGIN again\n", dev.msg_timeout);
+			}
+			dev.reply_timeout++;
 		}
-
-		if(dev.msg_timeout >= NUMBER_MSG_MAX_RETRY)
-		{	
-			BSP_Printf("Retry sending too many times, need reset\n");	
-			dev.msg_timeout = 0;
-			dev.need_reset = ERR_RETRY_TOO_MANY_TIMES;
-		}	
-		//BSP_Printf("TIM6_E Dev Status: %d, Msg expect: %d, Msg recv: %d\r\n", dev.status, dev.msg_expect, dev.msg_recv);
-		//BSP_Printf("TIM6_E HB: %d, HB TIMER: %d, Msg TIMEOUT: %d\r\n", dev.hb_count, dev.hb_timer, dev.msg_timeout);
 		
 		TIM_SetCounter(TIM6,0); 
 	}

@@ -21,26 +21,6 @@ extern char iccid[LENGTH_ICCID_BUF];
 #define LENGTH_CSQ_BUF 20
 extern char csq[LENGTH_CSQ_BUF];
 
-//存储设备重发命令的数组
-#define LENGTH_RESEND 35
-extern char Resend_Buffer[LENGTH_RESEND];
-
-//存储设备登陆命令的数组
-#define LENGTH_LOGIN 80
-extern char Login_Buffer[LENGTH_LOGIN];
-
-//存储心跳包的数组
-#define LENGTH_HEART 50
-extern char Heart_Buffer[LENGTH_HEART];
-
-//存储业务指令回文的数组
-#define LENGTH_ENABLE 50
-extern char Enbale_Buffer[LENGTH_ENABLE];
-
-//存储业务执行完成指令的数组
-#define LENGTH_DEVICE_OK 50
-extern char Device_OK_Buffer[LENGTH_DEVICE_OK];
-
 #define LENGTH_ATCMD_ACK 50
 #define LENGTH_DEVICE_OPEN_CMD        50
 #define LENGTH_USART_DATA        100
@@ -78,19 +58,11 @@ bool YR4G_Link_Server(void);
 bool YR4G_Link_Server_AT(void);
 bool YR4G_Link_Server_Powerkey(void);
 
-void Send_Login_Data(void);
+void SendLogin(void);
+void SendHeart(void);
+void SendStartAck(void);
+void SendFinish(void);
 
-u8 Send_Heart_Data(void);
-u8 Send_Heart_Data_Normal(void);
-u8 Send_Heart_Data_To_Server(void);
-
-u8 Send_Open_Device_Data(void);
-u8 Send_Open_Device_Data_Normal(void);
-u8 Send_Open_Device_Data_To_Server(void);
-
-u8 Send_Close_Device_Data(void);
-u8 Send_Close_Device_Data_Normal(void);
-u8 Send_Close_Device_Data_To_Server(void);
 char *YR4G_SMS_Create(char *sms_data, char *raw);
 
 #define MSG_STR_DEVICE_HEADER       "TRVAP"
@@ -107,19 +79,15 @@ char *YR4G_SMS_Create(char *sms_data, char *raw);
 
 typedef struct
 {
-	u8 status;
-	u8 hb_timer;   //hb always running
+	bool hb_ready;
+	u8 hb_timer;
 	u8 reply_timeout;
 	u8 need_reset;
 	u16 hb_count;
+	u8 portClosed;
+	bool wait_reply;
 	u8 msg_seq;
 	u8 msg_seq_s;
-	u32 msg_timeout;
-	u32 msg_recv;
-	u32 msg_expect;
-	char atcmd_ack[LENGTH_ATCMD_ACK];
-	char device_on_cmd_string[LENGTH_DEVICE_OPEN_CMD];
-	char usart_data[LENGTH_USART_DATA];
 	char sms_backup[LENGTH_SMS_BACKUP];	
 }t_DEV;
 
@@ -172,28 +140,18 @@ enum
 
 enum
 {
-	MSG_BIT_ACK = 0,                  //Dev->Server
-	MSG_BIT_LOGIN,
+	MSG_BIT_LOGIN=0,
 	MSG_BIT_HB,                        
 	MSG_BIT_CLOSE,	
 
 	MSG_BIT_OPEN,               //Server->Dev
-
-	//MSG_BIT_RESEND,          //Both Dir
-	
-	//MSG_BIT_RESET,             //Reset	
 };
 
-#define MSG_DEV_ACK          ((u32)(1<<MSG_BIT_ACK))
 #define MSG_DEV_LOGIN     ((u32)(1<<MSG_BIT_LOGIN))
 #define MSG_DEV_HB            ((u32)(1<<MSG_BIT_HB))
 #define MSG_DEV_CLOSE      ((u32)(1<<MSG_BIT_CLOSE))
 
 #define MSG_DEV_OPEN        ((u32)(1<<MSG_BIT_OPEN))
-
-//#define MSG_DEV_RESEND   ((u32)(1<<MSG_BIT_RESEND))
-
-//#define MSG_DEV_RESET      ((u32)(1<<MSG_BIT_RESET))
 
 enum
 {

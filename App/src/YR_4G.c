@@ -630,8 +630,8 @@ bool SocketTO(u8 sock)
 
 char *YR4G_SMS_Create(char *sms_data, char *raw)
 {
-	sprintf((char*)sms_data,"Reset Type: %d, Dev Status: %d, Msg expect: %d, Msg recv: %d, HB: %d, HB TIMER: %d, Msg TIMEOUT: %d, Msg: \"%s\", AT-ACK: %s\r\n", dev.need_reset, 
-		dev.status, dev.msg_expect, dev.msg_recv, dev.hb_count, dev.hb_timer, dev.msg_timeout, raw, dev.atcmd_ack); 
+	//sprintf((char*)sms_data,"Reset Type: %d, Dev Status: %d, Msg expect: %d, Msg recv: %d, HB: %d, HB TIMER: %d, Msg TIMEOUT: %d, Msg: \"%s\", AT-ACK: %s\r\n", dev.need_reset, 
+	//	dev.status, dev.msg_expect, dev.msg_recv, dev.hb_count, dev.hb_timer, dev.msg_timeout, raw, dev.atcmd_ack); 
 	return sms_data;
 }
 
@@ -925,8 +925,9 @@ u8 Get_Device_Upload_Str(u8 msg_str_id, char *msg_str)
 		
 		case MSG_STR_ID_HB:
 		case MSG_STR_ID_OPEN:
+		break;	
 		case MSG_STR_ID_CLOSE:
-			
+			*p_left++ = dev.portClosed;			
 		break;
 		
 		default:
@@ -953,54 +954,47 @@ u8 Get_Device_Upload_Str(u8 msg_str_id, char *msg_str)
 }
 
 //发送登陆信息给服务器
-void Send_Login_Data(void)
+void SendLogin(void)
 {
-	char Login_buf[100]={0};
-	if(Get_Device_Upload_Str(MSG_STR_ID_LOGIN, Login_buf) != 0)
+	char Loginbuf[100]={0};
+	if(Get_Device_Upload_Str(MSG_STR_ID_LOGIN, Loginbuf) != 0)
 	{
-		BSP_Printf("Login_Buffer:%s\r\n",Login_buf);	
-		u3_printf(Login_buf);
+		BSP_Printf("Login_Buffer:%s\r\n",Loginbuf);	
+		u3_printf(Loginbuf);
 	}
 }
 
 //发送心跳包给服务器
-u8 Send_Heart_Data(void)
+void SendHeart(void)
 {
-	u8 ret = CMD_ACK_NONE;
-	char HB_buf[100]={0};
-	if(Get_Device_Upload_Str(MSG_STR_ID_HB, HB_buf)!=0)
+	char HBbuf[100]={0};
+	if(Get_Device_Upload_Str(MSG_STR_ID_HB, HBbuf)!=0)
 	{
-		BSP_Printf("HB:%s\r\n",HB_buf);		
-		u3_printf(HB_buf);
+		BSP_Printf("HB:%s\r\n",HBbuf);		
+		u3_printf(HBbuf);
 	}
-	return ret;
 }
 
 //发送接收业务指令完成回文给服务器
-bool Send_Open_Device_Data(void)
+void SendStartAck(void)
 {
-	bool ret = FALSE;
-	char Open_Device_buf[100]={0};
-	if(Get_Device_Upload_Str(MSG_STR_ID_OPEN, Open_Device_buf)!=0)
+	char StartAck[100]={0};
+	if(Get_Device_Upload_Str(MSG_STR_ID_OPEN, StartAck)!=0)
 	{
-		BSP_Printf("Open:%s\r\n",Open_Device_buf);		
-		u3_printf(Open_Device_buf);
-		ret = TRUE;
+		BSP_Printf("Start:%s\r\n",StartAck);		
+		u3_printf(StartAck);
 	}
-	return ret;
 }
 
 //发送业务执行完成指令给服务器
-u8 Send_Close_Device_Data(void)
+void SendFinish(void)
 {
-	u8 ret = CMD_ACK_NONE;
-	char Close_Device_buf[100]={0};
-	if(Get_Device_Upload_Str(MSG_STR_ID_CLOSE, Close_Device_buf)!=0)
+	char FinishBuf[100]={0};
+	if(Get_Device_Upload_Str(MSG_STR_ID_CLOSE, FinishBuf)!=0)
 	{
-		BSP_Printf("New Close:%s\r\n",Close_Device_buf);		
-		u3_printf(Close_Device_buf);
+		BSP_Printf("Finish:%s\r\n",FinishBuf);		
+		u3_printf(FinishBuf);
 	}
-	return ret;
 }
 
 //////////////异或校验和函数///////

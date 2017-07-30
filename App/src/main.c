@@ -132,89 +132,88 @@ int main(void)
 		//BSP_Printf("Main_S Dev Status: %d, Msg expect: %d, Msg recv: %d\r\n", dev.status, dev.msg_expect, dev.msg_recv);
 		//BSP_Printf("Main_S HB: %d, HB TIMER: %d, Msg TIMEOUT: %d\r\n", dev.hb_count, dev.hb_timer, dev.msg_timeout);
 
-		if(DumpQueue(recv) != NULL)
+		if(isWorking())
 		{
-			uart_data_left = (char *)recv;
-			while((p=strstr(uart_data_left, MSG_STR_SERVER_HEADER))!=NULL)
+			if(DumpQueue(recv) != NULL)
 			{
-				if((p1=strstr((const char*)p,"#"))!=NULL)
+				uart_data_left = (char *)recv;
+				while((p=strstr(uart_data_left, MSG_STR_SERVER_HEADER))!=NULL)
 				{
-					//调用异或和函数来校验回文	
-					length = p1 - p +1;
-					//校验数据
-					sum = Check_Xor_Sum((char *)(p),length-5);
-					BSP_Printf("sum:%d\r\n",sum);
-					
-					//取字符串中的校验值,校验值转化为数字，并打印
-					sum_msg = atoi((const char *)(p+length-5));	
-					BSP_Printf("sum_msg:%d\r\n",sum_msg);
-					
-					//回文正确
-					if(sum == sum_msg)
+					if((p1=strstr((const char*)p,"#"))!=NULL)
 					{
-						u8 seq = atoi(msgSrv->seq);
-						msgSrv = (MsgSrv *)p;
-						BSP_Printf("Recv Seq[%d] Dup[%d] from Server\n", seq, atoi(msgSrv->dup));
-
-						switch(atoi(msgSrv->id))
+						//调用异或和函数来校验回文	
+						length = p1 - p +1;
+						//校验数据
+						sum = Check_Xor_Sum((char *)(p),length-5);
+						BSP_Printf("sum:%d\r\n",sum);
+						
+						//取字符串中的校验值,校验值转化为数字，并打印
+						sum_msg = atoi((const char *)(p+length-5));	
+						BSP_Printf("sum_msg:%d\r\n",sum_msg);
+						
+						//回文正确
+						if(sum == sum_msg)
 						{
-							case MSG_STR_ID_OPEN:
+							u8 seq = atoi(msgSrv->seq);
+							msgSrv = (MsgSrv *)p;
+							BSP_Printf("Recv Seq[%d] Dup[%d] from Server\n", seq, atoi(msgSrv->dup));
+
+							switch(atoi(msgSrv->id))
 							{
-								if(seq <= dev.msg_seq_s)
-									break;
-								else
-									dev.msg_seq_s = seq;
-								
-								char *interfaces, *periods;
-								bool interface_on[DEVICEn]={FALSE};
-								int period_on[DEVICEn]={0};
-								//根据当前设备状态进行开启(GPIO)，已经开了的就不处理了
-								//开启设备并本地计时
-								interfaces = strtok(p+sizeof(MsgSrv), ",");
-								if(interfaces)
-								{						
-									//BSP_Printf("ports: %s\n", interfaces);
-								}
-								for(i=DEVICE_01; i<DEVICEn; i++)
-									interface_on[i]=(interfaces[i]=='1')?TRUE:FALSE;
-									
-								periods = strtok(NULL, ",");
-								if(periods)
-								{						
-									//BSP_Printf("periods: %s\n", periods);	
-								}
-								sscanf(periods, "%02d%02d%02d%02d,", &period_on[DEVICE_01], 
-									&period_on[DEVICE_02], &period_on[DEVICE_03], &period_on[DEVICE_04]);
-
-								for(i=DEVICE_01; i<DEVICEn; i++)
+								case MSG_STR_ID_OPEN:
 								{
-									if(interface_on[i] && (g_device_status[i].power == OFF))
+									if(seq <= dev.msg_seq_s)
+										break;
+									else
+										dev.msg_seq_s = seq;
+									
+									char *interfaces, *periods;
+									bool interface_on[DEVICEn]={FALSE};
+									int period_on[DEVICEn]={0};
+									//根据当前设备状态进行开启(GPIO)，已经开了的就不处理了
+									//开启设备并本地计时
+									interfaces = strtok(p+sizeof(MsgSrv), ",");
+									if(interfaces)
+									{						
+										//BSP_Printf("ports: %s\n", interfaces);
+									}
+									for(i=DEVICE_01; i<DEVICEn; i++)
+										interface_on[i]=(interfaces[i]=='1')?TRUE:FALSE;
+										
+									periods = strtok(NULL, ",");
+									if(periods)
+									{						
+										//BSP_Printf("periods: %s\n", periods);	
+									}
+									sscanf(periods, "%02d%02d%02d%02d,", &period_on[DEVICE_01], 
+										&period_on[DEVICE_02], &period_on[DEVICE_03], &period_on[DEVICE_04]);
+
+									for(i=DEVICE_01; i<DEVICEn; i++)
 									{
-										g_device_status[i].total = period_on[i] * NUMBER_TIMER_1_MINUTE;
-										g_device_status[i].passed = 0;
-										g_device_status[i].power = ON;		
-										Device_ON(i);	
-									}			
+										if(interface_on[i] && (g_device_status[i].power == OFF))
+										{
+											g_device_status[i].total = period_on[i] * NUMBER_TIMER_1_MINUTE;
+											g_device_status[i].passed = 0;
+											g_device_status[i].power = ON;		
+											Device_ON(i);	
+										}			
+									}
+
+									Send_Open_Device_Data();
 								}
+								break;
+								default:
+								break;
 
-								Send_Open_Device_Data();
 							}
-							break;
-							case MSG_STR_ID_CLOSE:
-								
-							break;
-							default:
-							break;
-
 						}
+						uart_data_left = p1;
 					}
-					uart_data_left = p1;
-				}
-				else
-					break;
-			}		
+					else
+						break;
+				}		
+			}
 		}
-
 #if 0		
 		if(dev.need_reset != ERR_NONE)
 		{

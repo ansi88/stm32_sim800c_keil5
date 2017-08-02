@@ -226,7 +226,7 @@ u8 Check_CSQ(void)
 	u8 p[50] = {0}; 
   	u8 signal=0;
 
-	while(signal < 5)
+	//while(signal < 10)
 	{
 		delay_ms(2000);
 		while(count != 0)
@@ -244,16 +244,13 @@ u8 Check_CSQ(void)
 		
 		if(ret == CMD_ACK_OK)
 		{
-			//AT指令已经指令完成，下面对返回值进行处理
 			p1=(u8*)strstr((const char*)(dev.usart_data),":");
 			p2=(u8*)strstr((const char*)(p1),",");
 			p2[0]=0;//加入结束符
 			signal = atoi((const char *)(p1+2));
-			//sprintf((char*)p,"信号质量:%s",p1+2);
 			sprintf((char*)p,"信号质量:%d",signal);
 			BSP_Printf("%s\r\n",p);
 		}
-		//AT指令的回文已经处理完成，清零
 	}	
 	return ret;
 }
@@ -266,7 +263,6 @@ u8 Check_CSQ(void)
 
 		OK
 		****/
-//这个函数还没有最终确认....
 u8 Get_ICCID(void)
 {
 	u8 index = 0;
@@ -531,6 +527,8 @@ u8 Send_Data_To_Server(char* data)
 {
 	u8 ret = CMD_ACK_NONE;
 
+	Check_CSQ();
+	
 	if(dev.status == CMD_TO_IDLE)
 	{
 		BSP_Printf("Send_Data_To_Server: already IDLE status\r\n");

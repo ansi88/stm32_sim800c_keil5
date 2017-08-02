@@ -52,7 +52,8 @@ void Reset_Device_Status(u8 status)
 {
 	dev.hb_ready = FALSE;
 	dev.hb_timer = 0;
-	dev.reply_timeout = 0;
+	dev.wait_reply = FALSE;
+	dev.reply_timer = 0;
 	dev.need_reset = 0;
 	dev.hb_count = 0;
 	dev.portClosed = 0;
@@ -149,7 +150,7 @@ int main(void)
 						//调用异或和函数来校验回文	
 						length = p1 - p +1;
 						//校验数据
-						sum = Check_Xor_Sum((char *)(p),length-5);
+						sum = CheckSum((char *)(p),length-5);
 						BSP_Printf("sum:%d\r\n",sum);
 						
 						//取字符串中的校验值,校验值转化为数字，并打印
@@ -169,6 +170,7 @@ int main(void)
 								{
 									if(seq <= dev.msg_seq_s)
 									{
+										SendStartAck();
 										break;
 									}
 									else

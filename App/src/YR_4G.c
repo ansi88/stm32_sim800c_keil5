@@ -159,7 +159,7 @@ u16 resetTime=0;
 char csq[LENGTH_CSQ_BUF] = {0};
 SockSetting socketSetting[SOCK_MAX];
 
-t_DEV dev={0};
+t_DEV dev;
 extern void Reset_Device_Status(u8 status);
 
 const char *msg_id[MSG_STR_ID_MAX]={"00", "01", "03", "05"};
@@ -656,7 +656,7 @@ void YR4G_POWER_ON(void)
 	}
 }
 
-//关闭2G模块的电源芯片，当做急停按钮来使用
+//关闭4G模块的电源芯片，当做急停按钮来使用
 void YR4G_POWER_OFF(void)
 {
 	u8 i= 0;
@@ -706,7 +706,7 @@ void YR4G_PWRKEY_ON(void)
 	{
 		delay_ms(1000);	
 	}
-	dev.msg_recv = 0;	
+
 	dev.need_reset = ERR_NONE;
 	Reset_Device_Status(CMD_NONE);
 	Clear_Usart3();
@@ -865,7 +865,7 @@ bool YR4G_Link_Server(void)
 
 }
 
-u8 Get_Device_Upload_Str(u8 msg_str_id, char *msg_str)
+u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 {
 	MsgDev *msg=(MsgDev*)msg_str;
 	char *p_left=msg_str+sizeof(MsgDev);
@@ -887,14 +887,20 @@ u8 Get_Device_Upload_Str(u8 msg_str_id, char *msg_str)
   	strncpy(msg->length, "000", MSG_STR_LEN_OF_LENGTH);
 	msg->length[MSG_STR_LEN_OF_LENGTH] = delim;
 
-	if(dev.status == CMD_OPEN_DEVICE)
+	switch(msg_str_id)
 	{
-		sprintf(msg->seq,"%03d",dev.msg_seq_s);
+		case CMD_OPEN_DEVICE:
+			sprintf(msg->seq,"%03d",dev.msg_seq_s);
+		break;
+		case CMD_LOGIN:
+		case CMD_HB:
+		case CMD_CLOSE_DEVICE:
+			sprintf(msg->seq,"%03d",++dev.msg_seq);	
+		break;
+		default:
+		break;
 	}
-	else
-	{
-	  	sprintf(msg->seq,"%03d",++dev.msg_seq);	
-	}
+	
 	msg->seq[MSG_STR_LEN_OF_SEQ] = delim;
 
   	sprintf(msg->dup, "%02d", dev.msg_timeout);
@@ -938,7 +944,7 @@ u8 Get_Device_Upload_Str(u8 msg_str_id, char *msg_str)
 	msg->length[MSG_STR_LEN_OF_LENGTH] = delim;	
 	
 	//添加校验和
-	Result_Validation = Check_Xor_Sum(msg_str, strlen(msg_str));
+	Result_Validation = CheckSum(msg_str, strlen(msg_str));
 	
 	//校验值转化为字符串
   	sprintf(p_left,"%03d",Result_Validation);
@@ -957,7 +963,7 @@ u8 Get_Device_Upload_Str(u8 msg_str_id, char *msg_str)
 void SendLogin(void)
 {
 	char Loginbuf[100]={0};
-	if(Get_Device_Upload_Str(MSG_STR_ID_LOGIN, Loginbuf) != 0)
+	if(GetUploadStr(MSG_STR_ID_LOGIN, Loginbuf) != 0)
 	{
 		BSP_Printf("Login_Buffer:%s\r\n",Loginbuf);	
 		u3_printf(Loginbuf);
@@ -968,7 +974,7 @@ void SendLogin(void)
 void SendHeart(void)
 {
 	char HBbuf[100]={0};
-	if(Get_Device_Upload_Str(MSG_STR_ID_HB, HBbuf)!=0)
+	if(GetUploadStr(MSG_STR_ID_HB, HBbuf)!=0)
 	{
 		BSP_Printf("HB:%s\r\n",HBbuf);		
 		u3_printf(HBbuf);
@@ -979,7 +985,7 @@ void SendHeart(void)
 void SendStartAck(void)
 {
 	char StartAck[100]={0};
-	if(Get_Device_Upload_Str(MSG_STR_ID_OPEN, StartAck)!=0)
+	if(GetUploadStr(MSG_STR_ID_OPEN, StartAck)!=0)
 	{
 		BSP_Printf("Start:%s\r\n",StartAck);		
 		u3_printf(StartAck);
@@ -990,7 +996,7 @@ void SendStartAck(void)
 void SendFinish(void)
 {
 	char FinishBuf[100]={0};
-	if(Get_Device_Upload_Str(MSG_STR_ID_CLOSE, FinishBuf)!=0)
+	if(GetUploadStr(MSG_STR_ID_CLOSE, FinishBuf)!=0)
 	{
 		BSP_Printf("Finish:%s\r\n",FinishBuf);		
 		u3_printf(FinishBuf);
@@ -998,7 +1004,7 @@ void SendFinish(void)
 }
 
 //////////////异或校验和函数///////
-u8 Check_Xor_Sum(char* pBuf, u16 len)
+u8 CheckSum(char* pBuf, u16 len)
 {
 	u8 Sum = 0;
 	u8 i = 0;

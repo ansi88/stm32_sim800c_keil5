@@ -70,13 +70,8 @@ void TIM6_IRQHandler(void)
 	
 		if(dev.wait_reply)
 		{
-			if(dev.reply_timeout >= HB_1_MIN)
-			{
-				dev.reply_timeout = 0;
-				dev.msg_timeout++;
-				BSP_Printf("[%d]: Ready to send Msg MSG_DEV_LOGIN again\n", dev.msg_timeout);
-			}
-			dev.reply_timeout++;
+			if(dev.reply_timer < HB_1_MIN)
+				dev.reply_timer++;
 		}
 		
 		TIM_SetCounter(TIM6,0); 

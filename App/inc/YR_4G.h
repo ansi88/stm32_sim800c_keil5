@@ -28,7 +28,7 @@ extern char csq[LENGTH_CSQ_BUF];
 
 /*********WJ*********/
 bool 	YR4G_Send_Cmd(char *cmd,char *ack,char *recv,u16 waittime);
-u8 Check_Xor_Sum(char* pBuf, u16 len);
+u8 CheckSum(char* pBuf, u16 len);
 
 char *DumpQueue(char * recv);
 bool 	CheckModule(void);
@@ -81,11 +81,11 @@ typedef struct
 {
 	bool hb_ready;
 	u8 hb_timer;
-	u8 reply_timeout;
+	bool wait_reply;	
+	u8 reply_timer;	
 	u8 need_reset;
 	u16 hb_count;
 	u8 portClosed;
-	bool wait_reply;
 	u8 msg_seq;
 	u8 msg_seq_s;
 	char sms_backup[LENGTH_SMS_BACKUP];	
@@ -127,7 +127,6 @@ enum
 
 	CMD_OPEN_DEVICE,
 
-	CMD_TO_IDLE,
 	CMD_ERROR,
 };
 

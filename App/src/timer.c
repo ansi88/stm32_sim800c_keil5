@@ -6,6 +6,7 @@
 #include "device.h"
 #include "queue.h"
 #include "YR_4G.h"
+#include "rtc.h"
 
 extern void Reset_Device_Status(u8 status);
 
@@ -16,7 +17,7 @@ void TIM6_IRQHandler(void)
 	if(TIM_GetITStatus(TIM6, TIM_IT_Update) != RESET)					  //是更新中断
 	{	
 		TIM_ClearITPendingBit(TIM6, TIM_IT_Update);  					//清除TIM6更新中断标志
-		BSP_Printf("TIM6\r\n");
+		Time_Display(RTC_GetCounter());
 		
 		if(!dev.hb_ready)
 		{

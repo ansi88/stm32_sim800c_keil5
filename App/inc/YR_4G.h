@@ -15,8 +15,14 @@ extern char password[LENGTH_PASSWORD_BUF];
 #define LENGTH_SYSINFO_BUF 20 
 extern char sysinfo[LENGTH_SYSINFO_BUF];
 
+#define LENGTH_SN_BUF  20
+extern char sn[LENGTH_SN_BUF];
+
 #define LENGTH_ICCID_BUF 20
 extern char iccid[LENGTH_ICCID_BUF];
+
+#define LENGTH_IMEI_BUF 20
+extern char imei[LENGTH_IMEI_BUF];
 
 #define LENGTH_CSQ_BUF 20
 extern char csq[LENGTH_CSQ_BUF];
@@ -189,7 +195,9 @@ bool 	GetSysinfo(void);
 bool 	GetPassword(void);
 bool 	GetResetTime(void);
 bool 	GetCSQ(void);
+bool GetSN(void);
 bool 	GetICCID(void);
+bool GetIMEI(void);
 bool SaveSetting(void);
 bool SocketParam(u8 rw, u8 sock, u8 *protocol, u8 *addr, u8 *port, SockSetting *pSocketSetting);
 bool SocketEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting);

@@ -60,7 +60,8 @@ void Reset_Device_Status(u8 status)
 	dev.need_reset = 0;
 	dev.hb_count = 0;
 	dev.portClosed = 0;
-	dev.wait_reply = FALSE;	
+	dev.wait_reply = FALSE;
+	dev.msg_seq = 0;
 }
 
 int main(void)
@@ -122,7 +123,7 @@ int main(void)
 
 	BSP_Printf("YR4GC Send Login\r\n");
 
-	TIM6_Int_Init(9999,2399);						     // 1sÖÐ¶Ï
+	TIM6_Int_Init(29999,2399);						     // 1sÖÐ¶Ï
 	TIM_SetCounter(TIM6,0); 
 	TIM_Cmd(TIM6,ENABLE);
 	
@@ -130,16 +131,7 @@ int main(void)
 	{
 		//BSP_Printf("Main_S Dev Status: %d, Msg expect: %d, Msg recv: %d\r\n", dev.status, dev.msg_expect, dev.msg_recv);
 		//BSP_Printf("Main_S HB: %d, HB TIMER: %d, Msg TIMEOUT: %d\r\n", dev.hb_count, dev.hb_timer, dev.msg_timeout);
-
-		/* If 1s has been elapsed */
-		if (TimeDisplay == 1)
-		{
-			BSP_Printf("\n\r");
-			/* Display current time */
-			Time_Display(RTC_GetCounter());
-			TimeDisplay = 0;
-		}
-#if 0		
+		
 		if(isWorking())
 		{
 			if(!dev.is_login)
@@ -189,7 +181,7 @@ int main(void)
 							{
 								if(atoi(msgSrv->id) == MSG_STR_ID_LOGIN)
 								{
-									dev.is_login =  TRUE;
+									dev.is_login = TRUE;
 								}
 								break;
 							}
@@ -266,7 +258,6 @@ int main(void)
 		}
 		//BSP_Printf("Main_E Dev Status: %d, Msg expect: %d, Msg recv: %d\r\n", dev.status, dev.msg_expect, dev.msg_recv);
 		//BSP_Printf("Main_E HB: %d, HB TIMER: %d, Msg TIMEOUT: %d\r\n", dev.hb_count, dev.hb_timer, dev.msg_timeout);
-#endif	
 	}
 }
 

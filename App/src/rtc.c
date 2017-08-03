@@ -5,7 +5,7 @@
 void rtc_init(void)
 {
 
-	NVIC_Configuration();
+	//NVIC_Configuration();
 	
 	if (BKP_ReadBackupRegister(BKP_DR1) != 0xA5A5)
   {

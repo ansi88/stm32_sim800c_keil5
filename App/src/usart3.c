@@ -95,7 +95,7 @@ void usart3_init(u32 bound)
 	NVIC_Init(&NVIC_InitStructure);	//根据指定的参数初始化VIC寄存器
 	
 	
-	TIM7_Int_Init(99,2399);		//10ms中断
+	TIM7_Int_Init(299,2399);		//10ms中断
 	//TIM7_Int_Init(999,2399);
 	USART3_RX_STA=0;		    	//清零
 	TIM_Cmd(TIM7,DISABLE);		//关闭定时器7

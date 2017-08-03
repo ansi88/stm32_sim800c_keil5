@@ -154,12 +154,14 @@ char version[LENGTH_VERSION_BUF] = {0};
 char wkmod[LENGTH_WKMOD_BUF] = {0};
 char password[LENGTH_PASSWORD_BUF] = "usr.cn";
 char sysinfo[LENGTH_SYSINFO_BUF] = {0};
+char sn[LENGTH_SN_BUF] = {0};
 char iccid[LENGTH_ICCID_BUF] = {0};
+char imei[LENGTH_IMEI_BUF] = {0};
 u16 resetTime=0;
 char csq[LENGTH_CSQ_BUF] = {0};
 SockSetting socketSetting[SOCK_MAX]={
 	{TRUE, FALSE, 0, "LONG", "TCP", "116.62.187.167", "8089"},
-	{TRUE, FALSE, 0, "LONG", "TCP", "test.usr.cn", "2317"},
+	{FALSE, FALSE, 0, "LONG", "TCP", "test.usr.cn", "2317"},
 	{FALSE, FALSE, 0, NULL, NULL, {0}, {0}},
 	{FALSE, FALSE, 0, NULL, NULL, {0}, {0}},
 };
@@ -405,6 +407,30 @@ bool GetCSQ(void)
 	return ret;
 }
 
+bool GetSN(void)
+{
+	u8 retry = RETRY_AT;
+	u8 id=AT_SN;
+	char recv[50];	
+	bool ret = FALSE;
+
+	while(retry != 0)
+	{
+		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
+		if(ret) 
+		{
+			memset(sn, 0, sizeof(sn));
+			strcpy(sn, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
+			BSP_Printf("SN: %s\n", sn);
+			break;
+		}
+		delay_ms(1500);
+		retry--;
+	}
+
+	return ret;
+}
+
 bool GetICCID(void)
 {
 	u8 retry = RETRY_AT;
@@ -418,8 +444,32 @@ bool GetICCID(void)
 		if(ret) 
 		{
 			memset(iccid, 0, sizeof(iccid));
-			strcpy(iccid, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
+			strcpy(iccid, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack)+1);
 			BSP_Printf("ICCID: %s\n", iccid);
+			break;
+		}
+		delay_ms(1500);
+		retry--;
+	}
+
+	return ret;
+}
+
+bool GetIMEI(void)
+{
+	u8 retry = RETRY_AT;
+	u8 id=AT_IMEI;
+	char recv[50];	
+	bool ret = FALSE;
+
+	while(retry != 0)
+	{
+		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
+		if(ret) 
+		{
+			memset(imei, 0, sizeof(imei));
+			strcpy(imei, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack)+1);
+			BSP_Printf("IMEI: %s\n", imei);
 			break;
 		}
 		delay_ms(1500);
@@ -816,7 +866,7 @@ bool YR4G_Link_Server_AT(void)
 		if(ret = GetVersion())
 			if(ret = GetPassword())
 				if(ret = GetCSQ())
-					if(ret = GetICCID())
+					if(ret = (GetSN() && GetICCID() && GetIMEI()))
 						if(ret = GetResetTime())
 							if(ret = GetSysinfo())
 								if(ret = YR4G_RecoverSocket())
@@ -827,17 +877,18 @@ bool YR4G_Link_Server_AT(void)
 									{
 										if(socketSetting[i].isOn)
 										{
-											for(int i=0; i<20; i++)
-												delay_ms(1500);
-											SockSetting tSockSetting;
-											isConnected(i, &tSockSetting);
-											if(tSockSetting.isConnected == FALSE)
+#define MAX_TRY  20										
+											SockSetting tSockSetting;										
+											for(int i=0; i<MAX_TRY; i++)
 											{
-												//SocketEnable(WRITE, i, FALSE, NULL);
-												break;
+												delay_ms(1500);
+												isConnected(i, &tSockSetting);
+												if(tSockSetting.isConnected)
+												{
+													ret = TRUE;
+													break;
+												}
 											}
-											else
-												ret = TRUE;
 										}
 									}
 								}
@@ -898,21 +949,22 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 
   	strncpy(msg->length, "000", MSG_STR_LEN_OF_LENGTH);
 	msg->length[MSG_STR_LEN_OF_LENGTH] = delim;
-
+	BSP_Printf("123: %s %d\n", msg_str, msg_str_id);
 	switch(msg_str_id)
 	{
-		case CMD_OPEN_DEVICE:
+		case MSG_STR_ID_CLOSE:
 			sprintf(msg->seq,"%03d",dev.msg_seq_s);
 		break;
-		case CMD_LOGIN:
-		case CMD_HB:
-		case CMD_CLOSE_DEVICE:
+		case MSG_STR_ID_OPEN:
+		case MSG_STR_ID_HB:
+		case MSG_STR_ID_LOGIN:
 			sprintf(msg->seq,"%03d",++dev.msg_seq);	
+			BSP_Printf("223: %s\n", msg->seq);
 		break;
 		default:
 		break;
 	}
-	
+
 	msg->seq[MSG_STR_LEN_OF_SEQ] = delim;
 
   	sprintf(msg->dup, "%02d", dev.wait_reply);
@@ -930,7 +982,7 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 
 	Device_Timer_Status(msg->period);
 	msg->period[MSG_STR_LEN_OF_PORTS_PERIOD] = delim;
-	
+
 	switch(msg_str_id)
 	{
 		case MSG_STR_ID_LOGIN:
@@ -951,7 +1003,7 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 		default:
 		break;
 	}
-
+	
   	sprintf(msg->length,"%03d",strlen(msg_str)-sizeof(msg->header)-sizeof(msg->id)-sizeof(msg->length)+5);
 	msg->length[MSG_STR_LEN_OF_LENGTH] = delim;	
 	

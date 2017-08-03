@@ -30,6 +30,7 @@
 #include "YR_4G.h"
 #include "device.h"
 #include "queue.h"
+#include "rtc.h"
 
 ////////////////////////ST官方程序框架需要的变量和函数///////////////////////////////////////////
 
@@ -50,6 +51,8 @@ TIM4                   3                      1
 ////////////////////////用户程序自定义的变量和函数///////////////////////////////////////////
 void Reset_Device_Status(u8 status)
 {
+	dev.status = status;
+	dev.is_login = FALSE;
 	dev.hb_ready = FALSE;
 	dev.hb_timer = 0;
 	dev.wait_reply = FALSE;
@@ -91,7 +94,8 @@ int main(void)
 #endif
 	
 	usart3_init(115200);                            //串口3,对接YR4G
-	
+
+	rtc_init();	
 	Reset_Device_Status(CMD_NONE);
 	Clear_Usart3();
 	YR4G_POWER_ON();  
@@ -127,17 +131,34 @@ int main(void)
 		//BSP_Printf("Main_S Dev Status: %d, Msg expect: %d, Msg recv: %d\r\n", dev.status, dev.msg_expect, dev.msg_recv);
 		//BSP_Printf("Main_S HB: %d, HB TIMER: %d, Msg TIMEOUT: %d\r\n", dev.hb_count, dev.hb_timer, dev.msg_timeout);
 
+		/* If 1s has been elapsed */
+		if (TimeDisplay == 1)
+		{
+			BSP_Printf("\n\r");
+			/* Display current time */
+			Time_Display(RTC_GetCounter());
+			TimeDisplay = 0;
+		}
+#if 0		
 		if(isWorking())
 		{
-			if(dev.hb_ready)
+			if(!dev.is_login)
 			{
-				SendHeart();
-				dev.hb_ready = FALSE;
+				if(dev.reply_timer >= REPLY_1_MIN)
+					SendLogin();
 			}
-
-			if((dev.portClosed != 0) && (dev.wait_reply))
+			else
 			{
-				SendFinish();
+				if(dev.hb_ready)
+				{
+					SendHeart();
+					dev.hb_ready = FALSE;
+				}
+
+				if((dev.portClosed != 0) && (dev.wait_reply))
+				{
+					SendFinish();
+				}
 			}
 			
 			if(DumpQueue(recv) != NULL)
@@ -164,6 +185,15 @@ int main(void)
 							msgSrv = (MsgSrv *)p;
 							BSP_Printf("Recv Seq[%d] Dup[%d] from Server\n", seq, atoi(msgSrv->dup));
 
+							if(!dev.is_login)
+							{
+								if(atoi(msgSrv->id) == MSG_STR_ID_LOGIN)
+								{
+									dev.is_login =  TRUE;
+								}
+								break;
+							}
+								
 							switch(atoi(msgSrv->id))
 							{
 								case MSG_STR_ID_OPEN:
@@ -236,8 +266,8 @@ int main(void)
 		}
 		//BSP_Printf("Main_E Dev Status: %d, Msg expect: %d, Msg recv: %d\r\n", dev.status, dev.msg_expect, dev.msg_recv);
 		//BSP_Printf("Main_E HB: %d, HB TIMER: %d, Msg TIMEOUT: %d\r\n", dev.hb_count, dev.hb_timer, dev.msg_timeout);
+#endif	
 	}
-	
 }
 
 

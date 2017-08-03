@@ -157,7 +157,12 @@ char sysinfo[LENGTH_SYSINFO_BUF] = {0};
 char iccid[LENGTH_ICCID_BUF] = {0};
 u16 resetTime=0;
 char csq[LENGTH_CSQ_BUF] = {0};
-SockSetting socketSetting[SOCK_MAX];
+SockSetting socketSetting[SOCK_MAX]={
+	{TRUE, FALSE, 0, "LONG", "TCP", "116.62.187.167", "8089"},
+	{TRUE, FALSE, 0, "LONG", "TCP", "test.usr.cn", "2317"},
+	{FALSE, FALSE, 0, NULL, NULL, {0}, {0}},
+	{FALSE, FALSE, 0, NULL, NULL, {0}, {0}},
+};
 
 t_DEV dev;
 extern void Reset_Device_Status(u8 status);
@@ -272,7 +277,7 @@ bool CheckModule(void)
 		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
 		if(ret) 
 			break;
-		delay_ms(2000);
+		delay_ms(1500);
 		retry--;
 	}
 	
@@ -296,7 +301,7 @@ bool GetVersion(void)
 			BSP_Printf("Version: %s\n", version);
 			break;
 		}
-		delay_ms(2000);
+		delay_ms(1500);
 		retry--;
 	}
 	
@@ -320,7 +325,7 @@ bool GetSysinfo(void)
 			BSP_Printf("SysInfo: %s\n", sysinfo);
 			break;
 		}
-		delay_ms(2000);
+		delay_ms(1500);
 		retry--;
 	}
 	
@@ -346,7 +351,7 @@ bool GetPassword(void)
 			BSP_Printf("Password: %s\n", password);
 			break;
 		}
-		delay_ms(2000);
+		delay_ms(1500);
 		retry--;
 	}
 
@@ -369,7 +374,7 @@ bool GetResetTime(void)
 			BSP_Printf("Reset Time: %d\n", resetTime);
 			break;
 		}
-		delay_ms(2000);
+		delay_ms(1500);
 		retry--;
 	}
 
@@ -393,7 +398,7 @@ bool GetCSQ(void)
 			BSP_Printf("CSQ: %s\n", csq);
 			break;
 		}
-		delay_ms(2000);
+		delay_ms(1500);
 		retry--;
 	}
 
@@ -417,7 +422,7 @@ bool GetICCID(void)
 			BSP_Printf("ICCID: %s\n", iccid);
 			break;
 		}
-		delay_ms(2000);
+		delay_ms(1500);
 		retry--;
 	}
 
@@ -436,14 +441,14 @@ bool SaveSetting(void)
 		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
 		if(ret) 
 			break;
-		delay_ms(2000);
+		delay_ms(1500);
 		retry--;
 	}
 
 	return ret;
 }
 
-bool SocketParam(u8 rw, u8 sock, u8 *protocol, u8 *addr, u8 *port)
+bool SocketParam(u8 rw, u8 sock, u8 *protocol, u8 *addr, u8 *port, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SOCK_PARAM;
@@ -464,21 +469,21 @@ bool SocketParam(u8 rw, u8 sock, u8 *protocol, u8 *addr, u8 *port)
 				recv[strlen(strstr(recv, ack))-2]=0;
 				p=strtok(strstr(recv, ack)+strlen(ack),",");
 				if(strstr(p, SocketProtocol[SOCK_TCP]))
-					socketSetting[sock].protocol=SocketProtocol[SOCK_TCP];
+					pSocketSetting->protocol=SocketProtocol[SOCK_TCP];
 				else
-					socketSetting[sock].protocol=SocketProtocol[SOCK_UDP];
+					pSocketSetting->protocol=SocketProtocol[SOCK_UDP];
 				
 				p=strtok(NULL,",");
 				if(p)
-					strcpy(socketSetting[sock].addr, p);
+					strcpy(pSocketSetting->addr, p);
 				p=strtok(NULL,",");
 				if(p)
-					strcpy(socketSetting[sock].port, p);
+					strcpy(pSocketSetting->port, p);
 
-				BSP_Printf("Sock[%c]: Protocol[%s] Addr[%s] Port[%s]\n", SocketLabel[sock], socketSetting[sock].protocol, socketSetting[sock].addr, socketSetting[sock].port);
+				BSP_Printf("Sock[%c]: Protocol[%s] Addr[%s] Port[%s]\n", SocketLabel[sock], pSocketSetting->protocol, pSocketSetting->addr, pSocketSetting->port);
 				break;
 			}
-			delay_ms(2000);
+			delay_ms(1500);
 			retry--;
 		}
 	}
@@ -490,7 +495,7 @@ bool SocketParam(u8 rw, u8 sock, u8 *protocol, u8 *addr, u8 *port)
 	return ret;
 }
 
-bool SocketEnable(u8 rw, u8 sock, bool enable)
+bool SocketEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SOCK_ENABLE;
@@ -507,11 +512,11 @@ bool SocketEnable(u8 rw, u8 sock, bool enable)
 			ret = YR4G_Send_Cmd(cmd,ack,recv,100);
 			if(ret)
 			{
-				socketSetting[sock].isOn = (strstr(recv, SocketEN[SOCK_EN])!=NULL)?TRUE:FALSE;
-				BSP_Printf("Enable[%c]: %d\n", SocketLabel[sock], socketSetting[sock].isOn);
+				pSocketSetting->isOn = (strstr(recv, SocketEN[SOCK_EN])!=NULL)?TRUE:FALSE;
+				BSP_Printf("Enable[%c]: %d\n", SocketLabel[sock], pSocketSetting->isOn);
 				break;
 			}
-			delay_ms(2000);
+			delay_ms(1500);
 			retry--;
 		}
 	}
@@ -527,7 +532,7 @@ bool SocketEnable(u8 rw, u8 sock, bool enable)
 				BSP_Printf("Enable[%c]: %d\n", SocketLabel[sock], socketSetting[sock].isOn);
 				break;
 			}
-			delay_ms(2000);
+			delay_ms(1500);
 			retry--;
 		}		
 	}
@@ -535,7 +540,7 @@ bool SocketEnable(u8 rw, u8 sock, bool enable)
 	return ret;
 }
 
-bool SocketSL(u8 rw, u8 sock, u8 sl)
+bool SocketSL(u8 rw, u8 sock, u8 sl, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SOCK_SL;
@@ -553,13 +558,13 @@ bool SocketSL(u8 rw, u8 sock, u8 sl)
 			if(ret)
 			{
 				if(strstr(recv, Socketsl[SOCK_S]))
-					socketSetting[sock].sl=Socketsl[SOCK_S];
+					pSocketSetting->sl=Socketsl[SOCK_S];
 				else
-					socketSetting[sock].sl=Socketsl[SOCK_L];				
-				BSP_Printf("SL[%c]: %s\n", SocketLabel[sock], socketSetting[sock].sl);
+					pSocketSetting->sl=Socketsl[SOCK_L];				
+				BSP_Printf("SL[%c]: %s\n", SocketLabel[sock], pSocketSetting->sl);
 				break;
 			}
-			delay_ms(2000);
+			delay_ms(1500);
 			retry--;
 		}
 	}
@@ -571,7 +576,7 @@ bool SocketSL(u8 rw, u8 sock, u8 sl)
 	return ret;
 }
 
-bool isConnected(u8 sock)
+bool isConnected(u8 sock, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SOCK_LK;
@@ -587,20 +592,20 @@ bool isConnected(u8 sock)
 		if(ret)
 		{
 			if(strstr(recv, SocketLK[SOCK_LK]))
-				socketSetting[sock].isConnected=TRUE;
+				pSocketSetting->isConnected=TRUE;
 			else
-				socketSetting[sock].isConnected=FALSE;				
-			BSP_Printf("Connected[%c]: %d\n", SocketLabel[sock], socketSetting[sock].isConnected);
+				pSocketSetting->isConnected=FALSE;				
+			BSP_Printf("Connected[%c]: %d\n", SocketLabel[sock], pSocketSetting->isConnected);
 			break;
 		}
-		delay_ms(2000);
+		delay_ms(1500);
 		retry--;
 	}
 	
 	return ret;
 }
 
-bool SocketTO(u8 sock)
+bool SocketTO(u8 sock, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SOCK_TO;
@@ -615,11 +620,11 @@ bool SocketTO(u8 sock)
 		ret = YR4G_Send_Cmd(cmd,ack,recv,100);
 		if(ret)
 		{
-			socketSetting[sock].timeout=atoi(strstr(recv, ack));			
-			BSP_Printf("Timerout[%c]: %d\n", SocketLabel[sock], socketSetting[sock].timeout);
+			pSocketSetting->timeout=atoi(strstr(recv, ack));			
+			BSP_Printf("Timerout[%c]: %d\n", SocketLabel[sock], pSocketSetting->timeout);
 			break;
 		}
-		delay_ms(2000);
+		delay_ms(1500);
 		retry--;
 	}
 
@@ -782,19 +787,22 @@ void YR4G_Power_Restart(void)
 
 }
 
-bool YR4G_GetSocketSetting(void)
+bool YR4G_RecoverSocket(void)
 {
 	bool ret = FALSE;
 	u8 i;
+
 	for(i=SOCK_A; i<SOCK_MAX; i++)
 	{
-		ret = SocketEnable(READ, i, 0);
-		if(socketSetting[i].isOn)
-		{
-			ret = SocketParam(READ, i, NULL, NULL, NULL);
-			ret = isConnected(i);
-			ret = SocketSL(READ, i, 0);
-		}
+		SockSetting tSockSetting;
+		ret = SocketEnable(READ, i, 0, &tSockSetting);
+		if(tSockSetting.isOn != socketSetting[i].isOn)
+			ret = SocketEnable(WRITE, i, socketSetting[i].isOn, NULL);
+
+		ret = SocketParam(READ, i, NULL, NULL, NULL, &tSockSetting);
+		ret = isConnected(i, &tSockSetting);
+		ret = SocketSL(READ, i, 0, &tSockSetting);
+
 		if(!ret)
 			break;
 	}
@@ -811,18 +819,22 @@ bool YR4G_Link_Server_AT(void)
 					if(ret = GetICCID())
 						if(ret = GetResetTime())
 							if(ret = GetSysinfo())
-								if(ret = YR4G_GetSocketSetting())
+								if(ret = YR4G_RecoverSocket())
 								{
-									BSP_Printf("Wait Connected\n");								
-									delay_ms(20000);
+									ret = FALSE;
+									BSP_Printf("Wait Connected\n");	
 									for(u8 i=SOCK_A; i<SOCK_MAX; i++)
 									{
 										if(socketSetting[i].isOn)
 										{
-											isConnected(i);
-											if(!socketSetting[i].isConnected)
+											for(int i=0; i<20; i++)
+												delay_ms(1500);
+											SockSetting tSockSetting;
+											isConnected(i, &tSockSetting);
+											if(tSockSetting.isConnected == FALSE)
 											{
-												SocketEnable(WRITE, i, FALSE);
+												//SocketEnable(WRITE, i, FALSE, NULL);
+												break;
 											}
 											else
 												ret = TRUE;
@@ -903,7 +915,7 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 	
 	msg->seq[MSG_STR_LEN_OF_SEQ] = delim;
 
-  	sprintf(msg->dup, "%02d", dev.msg_timeout);
+  	sprintf(msg->dup, "%02d", dev.wait_reply);
 	msg->dup[MSG_STR_LEN_OF_DUP] = delim;
 	
 	strncpy(msg->device, msg_device, MSG_STR_LEN_OF_DEVICE);
@@ -968,6 +980,7 @@ void SendLogin(void)
 		BSP_Printf("Login_Buffer:%s\r\n",Loginbuf);	
 		u3_printf(Loginbuf);
 	}
+	dev.reply_timer = 0;
 }
 
 //发送心跳包给服务器
@@ -1001,6 +1014,8 @@ void SendFinish(void)
 		BSP_Printf("Finish:%s\r\n",FinishBuf);		
 		u3_printf(FinishBuf);
 	}
+	dev.wait_reply = TRUE;
+	dev.reply_timer = 0;	
 }
 
 //////////////异或校验和函数///////

@@ -27,44 +27,6 @@ extern char csq[LENGTH_CSQ_BUF];
 #define LENGTH_SMS_BACKUP        100
 
 /*********WJ*********/
-bool 	YR4G_Send_Cmd(char *cmd,char *ack,char *recv,u16 waittime);
-u8 CheckSum(char* pBuf, u16 len);
-
-char *DumpQueue(char * recv);
-bool 	CheckModule(void);
-bool 	GetVersion(void);
-bool 	GetSysinfo(void);
-bool 	GetPassword(void);
-bool 	GetResetTime(void);
-bool 	GetCSQ(void);
-bool 	GetICCID(void);
-bool SaveSetting(void);
-bool SocketParam(u8 rw, u8 sock, u8 *protocol, u8 *addr, u8 *port);
-bool SocketEnable(u8 rw, u8 sock, bool enable);
-bool SocketSL(u8 rw, u8 sock, u8 sl);
-bool isConnected(u8 sock);
-bool SocketTO(u8 sock);
-	
-void YR4G_POWER_ON(void);
-void YR4G_POWER_OFF(void);
-void YR4G_PWRKEY_ON(void);
-void YR4G_PWRKEY_OFF(void);
-
-void YR4G_GPRS_Restart(void);
-void YR4G_Powerkey_Restart(void);
-void YR4G_Power_Restart(void);
-
-bool YR4G_Link_Server(void);
-bool YR4G_Link_Server_AT(void);
-bool YR4G_Link_Server_Powerkey(void);
-
-void SendLogin(void);
-void SendHeart(void);
-void SendStartAck(void);
-void SendFinish(void);
-
-char *YR4G_SMS_Create(char *sms_data, char *raw);
-
 #define MSG_STR_DEVICE_HEADER       "TRVAP"
 #define MSG_STR_SERVER_HEADER       "TRVBP"
 
@@ -79,6 +41,8 @@ char *YR4G_SMS_Create(char *sms_data, char *raw);
 
 typedef struct
 {
+	u8 status;
+	bool is_login;
 	bool hb_ready;
 	u8 hb_timer;
 	bool wait_reply;	
@@ -214,4 +178,43 @@ extern SockSetting socketSetting[SOCK_MAX];
 extern const char *msg_id[MSG_STR_ID_MAX];
 extern const char *msg_id_s[MSG_STR_ID_MAX];
 extern char  *cell;
+
+bool 	YR4G_Send_Cmd(char *cmd,char *ack,char *recv,u16 waittime);
+u8 CheckSum(char* pBuf, u16 len);
+
+char *DumpQueue(char * recv);
+bool 	CheckModule(void);
+bool 	GetVersion(void);
+bool 	GetSysinfo(void);
+bool 	GetPassword(void);
+bool 	GetResetTime(void);
+bool 	GetCSQ(void);
+bool 	GetICCID(void);
+bool SaveSetting(void);
+bool SocketParam(u8 rw, u8 sock, u8 *protocol, u8 *addr, u8 *port, SockSetting *pSocketSetting);
+bool SocketEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting);
+bool SocketSL(u8 rw, u8 sock, u8 sl, SockSetting *pSocketSetting);
+bool isConnected(u8 sock, SockSetting *pSocketSetting);
+bool SocketTO(u8 sock, SockSetting *pSocketSetting);
+	
+void YR4G_POWER_ON(void);
+void YR4G_POWER_OFF(void);
+void YR4G_PWRKEY_ON(void);
+void YR4G_PWRKEY_OFF(void);
+
+void YR4G_GPRS_Restart(void);
+void YR4G_Powerkey_Restart(void);
+void YR4G_Power_Restart(void);
+
+bool YR4G_Link_Server(void);
+bool YR4G_Link_Server_AT(void);
+bool YR4G_Link_Server_Powerkey(void);
+
+void SendLogin(void);
+void SendHeart(void);
+void SendStartAck(void);
+void SendFinish(void);
+
+char *YR4G_SMS_Create(char *sms_data, char *raw);
 #endif
+

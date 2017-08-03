@@ -22,7 +22,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f10x_it.h"
-
+#include "rtc.h"
 
 /** @addtogroup Demo
   * @{
@@ -137,7 +137,26 @@ void SysTick_Handler(void)
   ;
 }
 
+/**
+  * @brief  This function handles RTC global interrupt request.
+  * @param  None
+  * @retval None
+  */
+void RTC_IRQHandler(void)
+{
+  if (RTC_GetITStatus(RTC_IT_SEC) != RESET)
+  {
+    /* Clear the RTC Second interrupt */
+    RTC_ClearITPendingBit(RTC_IT_SEC);
 
+    /* Enable time update */
+    TimeDisplay = 1;
+
+    /* Wait until last write operation on RTC registers has finished */
+    RTC_WaitForLastTask();
+    
+  }
+}
 
  
 

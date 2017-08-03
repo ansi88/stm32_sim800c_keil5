@@ -16,7 +16,8 @@ void TIM6_IRQHandler(void)
 	if(TIM_GetITStatus(TIM6, TIM_IT_Update) != RESET)					  //是更新中断
 	{	
 		TIM_ClearITPendingBit(TIM6, TIM_IT_Update);  					//清除TIM6更新中断标志
-
+		BSP_Printf("TIM6\r\n");
+		
 		if(!dev.hb_ready)
 		{
 			if(dev.hb_timer >= HB_1_MIN)
@@ -68,9 +69,9 @@ void TIM6_IRQHandler(void)
 			}
 		}
 	
-		if(dev.wait_reply)
+		if(dev.wait_reply || !dev.is_login)
 		{
-			if(dev.reply_timer < HB_1_MIN)
+			if(dev.reply_timer < REPLY_1_MIN)
 				dev.reply_timer++;
 		}
 		
@@ -103,7 +104,7 @@ void TIM7_IRQHandler(void)
 }
 
 //通用定时器6中断初始化
-//这里选择为APB1的1倍，而APB1为24M
+//这里选择为APB1的1倍，而APB1为72M
 //arr：自动重装值。
 //psc：时钟预分频数
 //定时器溢出时间计算方法:Tout=((arr+1)*(psc+1))/Ft us.

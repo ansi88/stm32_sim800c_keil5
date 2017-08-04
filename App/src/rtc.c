@@ -128,9 +128,7 @@ void RTC_Configuration(void)
   * @retval None
   */
 void Time_Adjust(uint32_t TimeVar)
-{
-  uint32_t THH = 0, TMM = 0, TSS = 0;
-  
+{  
   /* Wait until last write operation on RTC registers has finished */
   RTC_WaitForLastTask();
   /* Change the current time */

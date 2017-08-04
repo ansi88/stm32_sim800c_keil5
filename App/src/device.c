@@ -111,7 +111,7 @@ Device_Power Device_Power_Status(u8 Device)
 void Device_Timer_Status(char *buf)
 {
 	u8 i;
-	char *p=buf;
+	//char *p=buf;
 	for(i=DEVICE_01; i<DEVICEn; i++)
 	{
 		//BSP_Printf("Device_Timer_Status Dev[%d].total: %d, passed: %d\n", i, g_device_status[i].total, g_device_status[i].passed);

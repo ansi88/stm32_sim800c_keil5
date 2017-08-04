@@ -21,11 +21,14 @@ extern char sn[LENGTH_SN_BUF];
 #define LENGTH_ICCID_BUF 20
 extern char iccid[LENGTH_ICCID_BUF];
 
-#define LENGTH_IMEI_BUF 20
+#define LENGTH_IMEI_BUF 40
 extern char imei[LENGTH_IMEI_BUF];
 
 #define LENGTH_CSQ_BUF 20
 extern char csq[LENGTH_CSQ_BUF];
+
+extern uint32_t  lastOutActivity;
+extern uint32_t  lastInActivity;
 
 #define LENGTH_ATCMD_ACK 50
 #define LENGTH_DEVICE_OPEN_CMD        50
@@ -33,6 +36,8 @@ extern char csq[LENGTH_CSQ_BUF];
 #define LENGTH_SMS_BACKUP        100
 
 /*********WJ*********/
+#define YR4G_STARTUP_MSG   "[USR-LTE-7S4]"
+
 #define MSG_STR_DEVICE_HEADER       "TRVAP"
 #define MSG_STR_SERVER_HEADER       "TRVBP"
 
@@ -47,14 +52,12 @@ extern char csq[LENGTH_CSQ_BUF];
 
 typedef struct
 {
-	u8 status;
 	bool is_login;
 	bool hb_ready;
 	u8 hb_timer;
 	bool wait_reply;	
 	u8 reply_timer;	
 	u8 need_reset;
-	u16 hb_count;
 	u8 portClosed;
 	u8 msg_seq;
 	u8 msg_seq_s;
@@ -67,7 +70,6 @@ typedef struct
 	char id[MSG_STR_LEN_OF_ID+1];
 	char length[MSG_STR_LEN_OF_LENGTH+1];
 	char seq[MSG_STR_LEN_OF_SEQ+1];
-	char dup[MSG_STR_LEN_OF_DUP+1];
 	char device[MSG_STR_LEN_OF_DEVICE+1];
 	char ports[MSG_STR_LEN_OF_PORTS+1];
 	char period[MSG_STR_LEN_OF_PORTS_PERIOD+1];
@@ -85,42 +87,6 @@ typedef struct
 
 /*********WJ*********/
 extern t_DEV dev;
-enum
-{
-	CMD_NONE,   //before connect
-
-	CMD_IDLE,    //connected but no op
-		
-	CMD_LOGIN,
-	CMD_HB,
-	CMD_CLOSE_DEVICE,
-
-	CMD_OPEN_DEVICE,
-
-	CMD_ERROR,
-};
-
-enum
-{ 
-	CMD_ACK_OK = 0,                 //USART3_RX_STA置位，返回的数据正确
-	CMD_ACK_DISCONN = 1,       //USART3_RX_STA置位，返回的数据表明掉线
-	CMD_ACK_NONE,                  //USART3_RX_STA没有置位
-};
-
-enum
-{
-	MSG_BIT_LOGIN=0,
-	MSG_BIT_HB,                        
-	MSG_BIT_CLOSE,	
-
-	MSG_BIT_OPEN,               //Server->Dev
-};
-
-#define MSG_DEV_LOGIN     ((u32)(1<<MSG_BIT_LOGIN))
-#define MSG_DEV_HB            ((u32)(1<<MSG_BIT_HB))
-#define MSG_DEV_CLOSE      ((u32)(1<<MSG_BIT_CLOSE))
-
-#define MSG_DEV_OPEN        ((u32)(1<<MSG_BIT_OPEN))
 
 enum
 {
@@ -137,15 +103,6 @@ enum
 	ERR_NONE = 0,
 
 	ERR_INIT_MODULE,
-	ERR_INIT_LINK_SERVER,
-	ERR_INIT_SEND_LOGIN,
-	ERR_RESET_LINK_SERVER,     
-	
-	ERR_SEND_LOGIN,	
-	ERR_SEND_HB,
-	ERR_SEND_CLOSE_DEVICE,
-	
-	ERR_SEND_OPEN_DEVICE,	
 	ERR_RETRY_TOO_MANY_TIMES,	
 
 	ERR_DISCONNECT,	
@@ -222,7 +179,7 @@ void SendLogin(void);
 void SendHeart(void);
 void SendStartAck(void);
 void SendFinish(void);
-
+bool isWorking(void);
 char *YR4G_SMS_Create(char *sms_data, char *raw);
 #endif
 

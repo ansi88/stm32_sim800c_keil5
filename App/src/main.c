@@ -49,18 +49,15 @@ TIM4                   3                      1
 ************************************************************************************/
 
 ////////////////////////用户程序自定义的变量和函数///////////////////////////////////////////
-void Reset_Device_Status(u8 status)
+void Reset_Device_Status(void)
 {
-	dev.status = status;
 	dev.is_login = FALSE;
 	dev.hb_ready = FALSE;
 	dev.hb_timer = 0;
 	dev.wait_reply = FALSE;
 	dev.reply_timer = 0;
 	dev.need_reset = 0;
-	dev.hb_count = 0;
 	dev.portClosed = 0;
-	dev.wait_reply = FALSE;
 	dev.msg_seq = 0;
 }
 
@@ -97,12 +94,8 @@ int main(void)
 	usart3_init(115200);                            //串口3,对接YR4G
 
 	rtc_init();	
-	Reset_Device_Status(CMD_NONE);
+	Reset_Device_Status();
 	Clear_Usart3();
-	YR4G_POWER_ON();  
-	YR4G_PWRKEY_ON();
-	BSP_Printf("YR4GC开机完成\r\n");
-	
 	Device_Init();
 	//Device_ON(DEVICE_01);
 	//Device_ON(DEVICE_04);
@@ -110,6 +103,10 @@ int main(void)
 	{
 		BSP_Printf("Power[%d]: %d\n", i, Device_Power_Status(i));
 	}
+	
+	YR4G_POWER_ON();  
+	YR4G_PWRKEY_ON();
+	BSP_Printf("YR4GC开机完成\r\n");
 	
 	while(!YR4G_Link_Server())
 	{
@@ -128,16 +125,13 @@ int main(void)
 	TIM_Cmd(TIM6,ENABLE);
 	
 	while(1)
-	{
-		//BSP_Printf("Main_S Dev Status: %d, Msg expect: %d, Msg recv: %d\r\n", dev.status, dev.msg_expect, dev.msg_recv);
-		//BSP_Printf("Main_S HB: %d, HB TIMER: %d, Msg TIMEOUT: %d\r\n", dev.hb_count, dev.hb_timer, dev.msg_timeout);
-		
-		if(isWorking())
-		{
+	{		
+		while(isWorking())
+		{	
 			if(!dev.is_login)
 			{
 				if(dev.reply_timer >= REPLY_1_MIN)
-					SendLogin();
+					SendLogin();  //is_login: login msg switch
 			}
 			else
 			{
@@ -147,7 +141,7 @@ int main(void)
 					dev.hb_ready = FALSE;
 				}
 
-				if((dev.portClosed != 0) && (dev.wait_reply))
+				if(dev.wait_reply && (dev.reply_timer >= REPLY_1_MIN))
 				{
 					SendFinish();
 				}
@@ -155,6 +149,11 @@ int main(void)
 			
 			if(DumpQueue(recv) != NULL)
 			{
+				if(strstr(recv,"reset"))
+				{
+					goto Restart;
+				}
+				
 				uart_data_left = (char *)recv;
 				while((p=strstr(uart_data_left, MSG_STR_SERVER_HEADER))!=NULL)
 				{
@@ -175,7 +174,8 @@ int main(void)
 						{
 							u8 seq = atoi(msgSrv->seq);
 							msgSrv = (MsgSrv *)p;
-							BSP_Printf("Recv Seq[%d] Dup[%d] from Server\n", seq, atoi(msgSrv->dup));
+							lastInActivity = RTC_GetCounter();
+							BSP_Printf("[%d]: Recv Seq[%d] Dup[%d] from Server\n", lastInActivity, seq, atoi(msgSrv->dup));
 
 							if(!dev.is_login)
 							{
@@ -256,8 +256,16 @@ int main(void)
 				}		
 			}
 		}
-		//BSP_Printf("Main_E Dev Status: %d, Msg expect: %d, Msg recv: %d\r\n", dev.status, dev.msg_expect, dev.msg_recv);
-		//BSP_Printf("Main_E HB: %d, HB TIMER: %d, Msg TIMEOUT: %d\r\n", dev.hb_count, dev.hb_timer, dev.msg_timeout);
+
+Restart:
+		Reset_Device_Status();
+		while(!YR4G_Link_Server())
+		{
+			BSP_Printf("INIT: YR Module not working\r\n");
+			dev.need_reset = ERR_INIT_MODULE;
+		}
+
+		SendLogin();	
 	}
 }
 

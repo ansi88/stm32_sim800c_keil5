@@ -147,7 +147,6 @@ const char delim=',';
 const char ending='#';
 const char *Error="Err";
 
-#define COUNT_AT 3
 #define RETRY_AT 3
 
 char version[LENGTH_VERSION_BUF] = {0};
@@ -160,12 +159,15 @@ char imei[LENGTH_IMEI_BUF] = {0};
 u16 resetTime=0;
 char csq[LENGTH_CSQ_BUF] = {0};
 SockSetting socketSetting[SOCK_MAX]={
-	{TRUE, FALSE, 0, "LONG", "TCP", "116.62.187.167", "8089"},
-	{FALSE, FALSE, 0, "LONG", "TCP", "test.usr.cn", "2317"},
+	{FALSE, FALSE, 0, "LONG", "TCP", "116.62.187.167", "8089"},
+	{TRUE, FALSE, 0, "LONG", "TCP", "test.usr.cn", "2317"},
 	{FALSE, FALSE, 0, NULL, NULL, {0}, {0}},
 	{FALSE, FALSE, 0, NULL, NULL, {0}, {0}},
 };
 
+uint32_t  lastOutActivity=0;
+uint32_t  lastInActivity=0;
+   
 t_DEV dev;
 extern void Reset_Device_Status(u8 status);
 
@@ -203,6 +205,22 @@ void YR4G_Port_Init(void)
 	GPIO_InitStructure.GPIO_Pin = LINKA_PIN | LINKB_PIN | WORK_PIN;	
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING; 
 	GPIO_Init(LINKA_GPIO_PORT, &GPIO_InitStructure);
+}
+
+void trimStr(char *dst, char *src, u8 ackId)
+{
+	char *tmp=strstr(src, atpair[ackId].ack)+strlen(atpair[ackId].ack);
+	while(*tmp == ' ') tmp++;   //delete blank
+	if(*tmp == 0)  // All spaces?
+	    return;
+
+	strcpy(dst, tmp);	
+	tmp = strchr(dst, '\r');
+	if(tmp!=NULL)
+		*tmp=0;
+	tmp = strchr(dst, '\n');
+	if(tmp!=NULL)
+		*tmp=0;
 }
 
 bool isWorking(void)
@@ -299,7 +317,7 @@ bool GetVersion(void)
 		if(ret) 
 		{
 			memset(version, 0, sizeof(version));
-			strcpy(version, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
+			trimStr(version, recv, id);
 			BSP_Printf("Version: %s\n", version);
 			break;
 		}
@@ -313,19 +331,27 @@ bool GetVersion(void)
 
 bool GetSysinfo(void)
 {
-	u8 retry = RETRY_AT;
+	u8 retry = RETRY_AT*10;
 	u8 id=AT_SYSINFO;
 	char recv[50];	
 	bool ret = FALSE;
+	for(u8 i=0;i<20;i++)
+		delay_ms(1500);
+	
 	while(retry != 0)
 	{
 		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
 		if(ret) 
 		{
-			memset(sysinfo, 0, sizeof(sysinfo));
-			strcpy(sysinfo, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
-			BSP_Printf("SysInfo: %s\n", sysinfo);
-			break;
+			if(strstr(recv, "No Network")!=NULL)
+				ret = FALSE;
+			else
+			{
+				memset(sysinfo, 0, sizeof(sysinfo));
+				trimStr(sysinfo, recv, id);
+				BSP_Printf("SysInfo: %s\n", sysinfo);
+				break;
+			}
 		}
 		delay_ms(1500);
 		retry--;
@@ -348,8 +374,7 @@ bool GetPassword(void)
 		if(ret) 
 		{
 			memset(password, 0, sizeof(password));
-			strcpy(password, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
-			password[strlen(password)-4]=0;
+			trimStr(password, recv, id);
 			BSP_Printf("Password: %s\n", password);
 			break;
 		}
@@ -385,20 +410,23 @@ bool GetResetTime(void)
 
 bool GetCSQ(void)
 {
-	u8 retry = RETRY_AT;
+	u8 retry = RETRY_AT*10;
 	u8 id=AT_CSQ;
 	char recv[50];	
 	bool ret = FALSE;
 
 	while(retry != 0)
 	{
-		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
+		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,1000);
 		if(ret) 
 		{
 			memset(csq, 0, sizeof(csq));
-			strcpy(csq, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
+			trimStr(csq, recv, id);
 			BSP_Printf("CSQ: %s\n", csq);
-			break;
+			if(atoi(csq)==99)
+				ret = FALSE;
+			else
+				break;
 		}
 		delay_ms(1500);
 		retry--;
@@ -420,7 +448,7 @@ bool GetSN(void)
 		if(ret) 
 		{
 			memset(sn, 0, sizeof(sn));
-			strcpy(sn, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack));
+			trimStr(sn, recv, id);
 			BSP_Printf("SN: %s\n", sn);
 			break;
 		}
@@ -444,7 +472,7 @@ bool GetICCID(void)
 		if(ret) 
 		{
 			memset(iccid, 0, sizeof(iccid));
-			strcpy(iccid, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack)+1);
+			trimStr(iccid, recv, id);
 			BSP_Printf("ICCID: %s\n", iccid);
 			break;
 		}
@@ -468,10 +496,11 @@ bool GetIMEI(void)
 		if(ret) 
 		{
 			memset(imei, 0, sizeof(imei));
-			strcpy(imei, strstr(recv, atpair[id].ack)+strlen(atpair[id].ack)+1);
+			trimStr(imei, recv, id);
 			BSP_Printf("IMEI: %s\n", imei);
 			break;
 		}
+		
 		delay_ms(1500);
 		retry--;
 	}
@@ -738,7 +767,7 @@ void YR4G_POWER_OFF(void)
 void YR4G_PWRKEY_ON(void)
 {
 	u8 i= 0;
-	
+	char recv[100];
 	GPIO_InitTypeDef  GPIO_InitStructure;
  	
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);	 
@@ -762,12 +791,16 @@ void YR4G_PWRKEY_ON(void)
 		delay_ms(1000);	
 	}
 
-	dev.need_reset = ERR_NONE;
-	Reset_Device_Status(CMD_NONE);
-	Clear_Usart3();
+	while(1)
+	{
+		delay_ms(1500);
+		if(DumpQueue(recv) != NULL)
+			if(strstr(recv,YR4G_STARTUP_MSG)!=NULL)
+				break;
+	}
 }
 
-//通过2G模块的PWRKEY来实现开关机
+//通过4G模块的PWRKEY来实现开关机
 void YR4G_PWRKEY_OFF(void)
 {
 	u8 i= 0;
@@ -845,13 +878,13 @@ bool YR4G_RecoverSocket(void)
 	for(i=SOCK_A; i<SOCK_MAX; i++)
 	{
 		SockSetting tSockSetting;
-		ret = SocketEnable(READ, i, 0, &tSockSetting);
+		ret = SocketEnable(READ, i, FALSE, &tSockSetting);
 		if(tSockSetting.isOn != socketSetting[i].isOn)
 			ret = SocketEnable(WRITE, i, socketSetting[i].isOn, NULL);
 
-		ret = SocketParam(READ, i, NULL, NULL, NULL, &tSockSetting);
-		ret = isConnected(i, &tSockSetting);
-		ret = SocketSL(READ, i, 0, &tSockSetting);
+		//ret = SocketParam(READ, i, NULL, NULL, NULL, &tSockSetting);
+		//ret = isConnected(i, &tSockSetting);
+		//ret = SocketSL(READ, i, 0, &tSockSetting);
 
 		if(!ret)
 			break;
@@ -865,10 +898,10 @@ bool YR4G_Link_Server_AT(void)
 	if(ret = CheckModule())
 		if(ret = GetVersion())
 			if(ret = GetPassword())
-				if(ret = GetCSQ())
-					if(ret = (GetSN() && GetICCID() && GetIMEI()))
-						if(ret = GetResetTime())
-							if(ret = GetSysinfo())
+				if(ret = (GetSN() && GetICCID() && GetIMEI()))
+					if(ret = GetResetTime())					
+						if(ret = GetSysinfo())
+							if(ret = GetCSQ())					
 								if(ret = YR4G_RecoverSocket())
 								{
 									ret = FALSE;
@@ -877,9 +910,9 @@ bool YR4G_Link_Server_AT(void)
 									{
 										if(socketSetting[i].isOn)
 										{
-#define MAX_TRY  20										
-											SockSetting tSockSetting;										
-											for(int i=0; i<MAX_TRY; i++)
+#define MAX_TRY  10			
+											SockSetting tSockSetting;
+											for(u8 j=0; j<MAX_TRY; j++)
 											{
 												delay_ms(1500);
 												isConnected(i, &tSockSetting);
@@ -949,7 +982,6 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 
   	strncpy(msg->length, "000", MSG_STR_LEN_OF_LENGTH);
 	msg->length[MSG_STR_LEN_OF_LENGTH] = delim;
-	BSP_Printf("123: %s %d\n", msg_str, msg_str_id);
 	switch(msg_str_id)
 	{
 		case MSG_STR_ID_CLOSE:
@@ -959,7 +991,6 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 		case MSG_STR_ID_HB:
 		case MSG_STR_ID_LOGIN:
 			sprintf(msg->seq,"%03d",++dev.msg_seq);	
-			BSP_Printf("223: %s\n", msg->seq);
 		break;
 		default:
 		break;
@@ -967,13 +998,9 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 
 	msg->seq[MSG_STR_LEN_OF_SEQ] = delim;
 
-  	sprintf(msg->dup, "%02d", dev.wait_reply);
-	msg->dup[MSG_STR_LEN_OF_DUP] = delim;
-	
 	strncpy(msg->device, msg_device, MSG_STR_LEN_OF_DEVICE);
 	msg->device[MSG_STR_LEN_OF_DEVICE] = delim;
 
-	//由于读取的是GPIO 高低，因此是设备实时状态
 	for(i = 0; i < MSG_STR_LEN_OF_PORTS; i++)
 	{
 		msg->ports[i] = (ON==Device_Power_Status(i))?'1':'0';		
@@ -988,8 +1015,8 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 		case MSG_STR_ID_LOGIN:
 			strcpy(p_left, "YR4G_");
 			p_left += strlen("YR4G_");
-			strncpy(p_left, iccid, LENGTH_ICCID_BUF);
-			p_left += LENGTH_ICCID_BUF;
+			strncpy(p_left, imei, LENGTH_IMEI_BUF);
+			p_left += strlen(imei);
 			*p_left++ = delim;
 		break;
 		
@@ -997,7 +1024,8 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 		case MSG_STR_ID_OPEN:
 		break;	
 		case MSG_STR_ID_CLOSE:
-			*p_left++ = dev.portClosed;			
+			*p_left++ = dev.portClosed;	
+			*p_left++ = delim;	
 		break;
 		
 		default:
@@ -1029,7 +1057,8 @@ void SendLogin(void)
 	char Loginbuf[100]={0};
 	if(GetUploadStr(MSG_STR_ID_LOGIN, Loginbuf) != 0)
 	{
-		BSP_Printf("Login_Buffer:%s\r\n",Loginbuf);	
+		lastOutActivity = RTC_GetCounter();
+		BSP_Printf("[%0.2d:%0.2d:%0.2d]Login-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60);		
 		u3_printf(Loginbuf);
 	}
 	dev.reply_timer = 0;
@@ -1041,7 +1070,8 @@ void SendHeart(void)
 	char HBbuf[100]={0};
 	if(GetUploadStr(MSG_STR_ID_HB, HBbuf)!=0)
 	{
-		BSP_Printf("HB:%s\r\n",HBbuf);		
+		lastOutActivity = RTC_GetCounter();  /* Compute  hours */		
+		BSP_Printf("[%0.2d:%0.2d:%0.2d]HB-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60);		
 		u3_printf(HBbuf);
 	}
 }
@@ -1052,7 +1082,8 @@ void SendStartAck(void)
 	char StartAck[100]={0};
 	if(GetUploadStr(MSG_STR_ID_OPEN, StartAck)!=0)
 	{
-		BSP_Printf("Start:%s\r\n",StartAck);		
+		lastOutActivity = RTC_GetCounter();	
+		BSP_Printf("[%0.2d:%0.2d:%0.2d]Start-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60);		
 		u3_printf(StartAck);
 	}
 }
@@ -1063,11 +1094,12 @@ void SendFinish(void)
 	char FinishBuf[100]={0};
 	if(GetUploadStr(MSG_STR_ID_CLOSE, FinishBuf)!=0)
 	{
-		BSP_Printf("Finish:%s\r\n",FinishBuf);		
+		lastOutActivity = RTC_GetCounter();	
+		BSP_Printf("[%0.2d:%0.2d:%0.2d]Finish-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60);		
 		u3_printf(FinishBuf);
 	}
 	dev.wait_reply = TRUE;
-	dev.reply_timer = 0;	
+	dev.reply_timer = 0;
 }
 
 //////////////异或校验和函数///////

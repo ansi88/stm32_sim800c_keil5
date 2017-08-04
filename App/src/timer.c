@@ -17,7 +17,7 @@ void TIM6_IRQHandler(void)
 	if(TIM_GetITStatus(TIM6, TIM_IT_Update) != RESET)					  //是更新中断
 	{	
 		TIM_ClearITPendingBit(TIM6, TIM_IT_Update);  					//清除TIM6更新中断标志
-		Time_Display(RTC_GetCounter());
+		//Time_Display(RTC_GetCounter());
 		
 		if(!dev.hb_ready)
 		{
@@ -52,6 +52,7 @@ void TIM6_IRQHandler(void)
 							Device_OFF(index);
 							BSP_Printf("TIM6: 设置设备状态为CLOSE_DEVICE\r\n");
 							dev.portClosed |= 1<<index;
+							SendFinish();
 						}
 						else
 							g_device_status[index].passed++;
@@ -85,7 +86,7 @@ void TIM7_IRQHandler(void)
 { 	
 	u16 i = 0; 
 
-	if (TIM_GetITStatus(TIM7, TIM_IT_Update) != RESET)//是更新中断
+	if (TIM_GetITStatus(TIM7, TIM_IT_Update) != RESET)
 	{	 		
 		TIM_ClearITPendingBit(TIM7, TIM_IT_Update);  //清除TIM7更新中断标志    
 		USART3_RX_STA|=1<<15;	//标记接收完成

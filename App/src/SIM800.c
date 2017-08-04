@@ -526,8 +526,6 @@ u8 Link_Server_AT(u8 mode,const char* ipaddr,const char *port)
 u8 Send_Data_To_Server(char* data)
 {
 	u8 ret = CMD_ACK_NONE;
-
-	Check_CSQ();
 	
 	if(dev.status == CMD_TO_IDLE)
 	{
@@ -537,7 +535,7 @@ u8 Send_Data_To_Server(char* data)
 	
 	if(dev.need_reset != ERR_NONE)
 	{
-		BSP_Printf("Send_Data_To_Server: Need Reset\r\n");	
+		BSP_Printf("Send_Data_To_Server: Need Reset\r\n");
 		return CMD_ACK_DISCONN;
 	}
 	else

@@ -205,7 +205,7 @@ void TIM7_IRQHandler(void)
 								break;
 								case CMD_OPEN_DEVICE:
 									BSP_Printf("Open Device No Need Resp\r\n");
-									Reset_Device_Status(CMD_IDLE);
+									Reset_Device_Status(CMD_TO_IDLE);
 								break;
 								default:
 									BSP_Printf("Wrong Status: %d\r\n", dev.status);

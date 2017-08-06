@@ -1162,14 +1162,15 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 	Device_Timer_Status(msg->period);
 	msg->period[MSG_STR_LEN_OF_PORTS_PERIOD] = delim;
 
+	strcpy(p_left, "YR4G_");
+	p_left += strlen("YR4G_");
+	strncpy(p_left, iccid, LENGTH_ICCID_BUF);
+	p_left += strlen(iccid);
+	*p_left++ = delim;
+			
 	switch(msg_str_id)
 	{
 		case MSG_STR_ID_LOGIN:	
-			strcpy(p_left, "YR4G_");
-			p_left += strlen("YR4G_");
-			strncpy(p_left, imei, LENGTH_IMEI_BUF);
-			p_left += strlen(imei);
-			*p_left++ = delim;			
 		case MSG_STR_ID_HB:
 		case MSG_STR_ID_OPEN:
 		break;	

@@ -34,6 +34,17 @@ enum{
 	AT_SOCK_TO,
 
 	AT_SOCK_IND,
+	AT_SDPEN,
+
+	AT_REGEN,
+	AT_REGTP,
+	AT_REGDT,
+	AT_REGSND,
+
+	AT_HEARTEN,
+	AT_HEARTDT,
+	AT_HEARTSND,
+	AT_HEARTTM,		
 	
 	AT_MAX,
 };
@@ -71,6 +82,17 @@ AtPair atpair[]=
 	{"TO", "TO"},		
 
 	{"+SOCKIND", "+SOCKIND:"},		
+	{"+SDPEN", "+SDPEN:"},
+
+	{"+REGEN", "+REGEN:"},
+	{"+REGTP", "+REGTP:"},
+	{"+REGDT", "+REGDT:"},
+	{"+REGSND", "+REGSND:"},
+
+	{"+HEARTEN", "+HEARTEN:"},
+	{"+HEARTDT", "+HEARTDT:"},
+	{"+HEARTSND", "+HEARTSND:"},
+	{"+HEARTTM", "+HEARTTM:"},
 	
 	{NULL, NULL},
 };
@@ -139,6 +161,33 @@ enum
 
 char *RegEN[]={"ON", "OFF"};
 
+enum
+{
+	REG_ICCID=0,
+	REG_IMEI,
+	REG_D2DID,
+	REG_CLOUD,	
+	REG_USER,	
+};
+
+char *RegTP[]={"ICCID", "IMEI", "D2DID", "CLOUD", "USER"};
+
+enum
+{
+	REG_LINK=0,
+	REG_DATA,
+};
+
+char *RegSND[]={"LINK", "DATA"};
+
+enum
+{
+	HEART_EN=0,
+	HEART_DIS,
+};
+
+char *HeartEN[]={"ON", "OFF"};
+
 const char SocketLabel[SOCK_MAX]={'A', 'B', 'C', 'D'};
 
 const char  *DefaultServer = "116.62.187.167";
@@ -159,10 +208,10 @@ char imei[LENGTH_IMEI_BUF] = {0};
 u16 resetTime=0;
 char csq[LENGTH_CSQ_BUF] = {0};
 SockSetting socketSetting[SOCK_MAX]={
-	{FALSE, FALSE, 0, "LONG", "TCP", "116.62.187.167", "8089"},
-	{TRUE, FALSE, 0, "LONG", "TCP", "test.usr.cn", "2317"},
-	{FALSE, FALSE, 0, NULL, NULL, {0}, {0}},
-	{FALSE, FALSE, 0, NULL, NULL, {0}, {0}},
+	{TRUE, FALSE, 0, "LONG", "TCP", "116.62.187.167", "8089", FALSE, NULL, {0}, NULL, FALSE, {0}, NULL, 0},
+	{FALSE, FALSE, 0, "LONG", "TCP", "test.usr.cn", "2317", FALSE, NULL, {0}, NULL, FALSE, {0}, NULL, 0},
+	{FALSE, FALSE, 0, NULL, NULL, {0}, {0}, FALSE, NULL, {0}, NULL, FALSE, {0}, NULL, 0},
+	{FALSE, FALSE, 0, NULL, NULL, {0}, {0}, FALSE, NULL, {0}, NULL, FALSE, {0}, NULL, 0},
 };
 
 uint32_t  lastOutActivity=0;
@@ -331,11 +380,11 @@ bool GetVersion(void)
 
 bool GetSysinfo(void)
 {
-	u8 retry = RETRY_AT*10;
+	u8 retry = RETRY_AT*60;
 	u8 id=AT_SYSINFO;
 	char recv[50];	
 	bool ret = FALSE;
-	for(u8 i=0;i<20;i++)
+	for(u8 i=0;i<40;i++)
 		delay_ms(1500);
 	
 	while(retry != 0)
@@ -473,8 +522,11 @@ bool GetICCID(void)
 		{
 			memset(iccid, 0, sizeof(iccid));
 			trimStr(iccid, recv, id);
-			BSP_Printf("ICCID: %s\n", iccid);
-			break;
+			if(strlen(iccid)>10)
+			{
+				BSP_Printf("ICCID: %s\n", iccid);
+				break;
+			}
 		}
 		delay_ms(1500);
 		retry--;
@@ -497,8 +549,11 @@ bool GetIMEI(void)
 		{
 			memset(imei, 0, sizeof(imei));
 			trimStr(imei, recv, id);
-			BSP_Printf("IMEI: %s\n", imei);
-			break;
+			if(strlen(imei)>10)
+			{
+				BSP_Printf("IMEI: %s\n", imei);
+				break;
+			}
 		}
 		
 		delay_ms(1500);
@@ -711,6 +766,87 @@ bool SocketTO(u8 sock, SockSetting *pSocketSetting)
 	return ret;
 }
 
+bool RegEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting)
+{
+	u8 retry = RETRY_AT;
+	u8 id=AT_REGEN;
+	char recv[50];	
+	bool ret = FALSE;
+
+	if(rw==READ)
+	{
+		while(retry != 0)
+		{
+			ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
+			if(ret)
+			{
+				pSocketSetting->isRegEn = (strstr(recv, RegEN[REG_EN])!=NULL)?TRUE:FALSE;
+				BSP_Printf("RegEn: %d\n", pSocketSetting->isRegEn);
+				break;
+			}
+			delay_ms(1500);
+			retry--;
+		}
+	}
+	else
+	{
+		while(retry != 0)
+		{
+			ret = YR4G_Send_Cmd(atpair[id].cmd,"OK",recv,100);
+			if(ret)
+			{
+				socketSetting[sock].isRegEn = enable;
+				BSP_Printf("RegEn: %d\n", socketSetting[sock].isRegEn);
+				break;
+			}
+			delay_ms(1500);
+			retry--;
+		}		
+	}
+	
+	return ret;
+}
+
+bool HeartEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting)
+{
+	u8 retry = RETRY_AT;
+	u8 id=AT_HEARTEN;
+	char recv[50];	
+	bool ret = FALSE;
+
+	if(rw==READ)
+	{
+		while(retry != 0)
+		{
+			ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
+			if(ret)
+			{
+				pSocketSetting->isHeartEn = (strstr(recv, HeartEN[REG_EN])!=NULL)?TRUE:FALSE;
+				BSP_Printf("HeartEn: %d\n", pSocketSetting->isHeartEn);
+				break;
+			}
+			delay_ms(1500);
+			retry--;
+		}
+	}
+	else
+	{
+		while(retry != 0)
+		{
+			ret = YR4G_Send_Cmd(atpair[id].cmd,"OK",recv,100);
+			if(ret)
+			{
+				socketSetting[sock].isHeartEn = enable;
+				BSP_Printf("HeartEn: %d\n", socketSetting[sock].isHeartEn);
+				break;
+			}
+			delay_ms(1500);
+			retry--;
+		}		
+	}
+	
+	return ret;
+}
 
 char *YR4G_SMS_Create(char *sms_data, char *raw)
 {
@@ -766,6 +902,7 @@ void YR4G_POWER_OFF(void)
 
 void YR4G_PWRKEY_ON(void)
 {
+	static bool abc=FALSE;
 	u8 i= 0;
 	char recv[100];
 	GPIO_InitTypeDef  GPIO_InitStructure;
@@ -791,12 +928,15 @@ void YR4G_PWRKEY_ON(void)
 		delay_ms(1000);	
 	}
 
-	while(1)
+	while(!abc)
 	{
 		delay_ms(1500);
 		if(DumpQueue(recv) != NULL)
 			if(strstr(recv,YR4G_STARTUP_MSG)!=NULL)
+			{
+				abc = TRUE;
 				break;
+			}
 	}
 }
 
@@ -882,6 +1022,14 @@ bool YR4G_RecoverSocket(void)
 		if(tSockSetting.isOn != socketSetting[i].isOn)
 			ret = SocketEnable(WRITE, i, socketSetting[i].isOn, NULL);
 
+		ret = RegEnable(READ, i, FALSE, &tSockSetting);
+		if(tSockSetting.isRegEn != socketSetting[i].isRegEn)
+			ret = RegEnable(WRITE, i, socketSetting[i].isRegEn, NULL);
+
+		ret = HeartEnable(READ, i, FALSE, &tSockSetting);
+		if(tSockSetting.isHeartEn != socketSetting[i].isHeartEn)
+			ret = HeartEnable(WRITE, i, socketSetting[i].isHeartEn, NULL);
+	
 		//ret = SocketParam(READ, i, NULL, NULL, NULL, &tSockSetting);
 		//ret = isConnected(i, &tSockSetting);
 		//ret = SocketSL(READ, i, 0, &tSockSetting);
@@ -912,7 +1060,8 @@ bool YR4G_Link_Server_AT(void)
 										{
 #define MAX_TRY  10			
 											SockSetting tSockSetting;
-											for(u8 j=0; j<MAX_TRY; j++)
+											//for(u8 j=0; j<MAX_TRY; j++)
+											for(;;)
 											{
 												delay_ms(1500);
 												isConnected(i, &tSockSetting);
@@ -998,6 +1147,9 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 
 	msg->seq[MSG_STR_LEN_OF_SEQ] = delim;
 
+	sprintf(msg->dup, "%02d", 0);
+	msg->dup[MSG_STR_LEN_OF_DUP] = delim;
+
 	strncpy(msg->device, msg_device, MSG_STR_LEN_OF_DEVICE);
 	msg->device[MSG_STR_LEN_OF_DEVICE] = delim;
 
@@ -1012,14 +1164,12 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 
 	switch(msg_str_id)
 	{
-		case MSG_STR_ID_LOGIN:
+		case MSG_STR_ID_LOGIN:	
 			strcpy(p_left, "YR4G_");
 			p_left += strlen("YR4G_");
 			strncpy(p_left, imei, LENGTH_IMEI_BUF);
 			p_left += strlen(imei);
-			*p_left++ = delim;
-		break;
-		
+			*p_left++ = delim;			
 		case MSG_STR_ID_HB:
 		case MSG_STR_ID_OPEN:
 		break;	

@@ -149,7 +149,7 @@ int main(void)
 			
 			if(DumpQueue(recv) != NULL)
 			{
-				if(strstr(recv,"reset"))
+				if(strstr(recv,"the module will be reset")!=NULL)
 				{
 					goto Restart;
 				}
@@ -181,8 +181,15 @@ int main(void)
 							{
 								if(atoi(msgSrv->id) == MSG_STR_ID_LOGIN)
 								{
-									dev.is_login = TRUE;
+									uint32_t TimeVar=atoi(p+sizeof(MsgSrv));
+									if((TimeVar > 0) && (TimeVar < TIMEVAL_MAX))
+									{
+										RTC_Configuration();
+										Time_Adjust(TimeVar);
+										dev.is_login = TRUE;
+									}
 								}
+
 								break;
 							}
 								

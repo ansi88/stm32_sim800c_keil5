@@ -3,28 +3,28 @@
 #include "sys.h"
 #include "device.h"
 
-#define LENGTH_VERSION_BUF 20
+#define LENGTH_VERSION_BUF 40
 extern char version[LENGTH_VERSION_BUF];
 
-#define LENGTH_WKMOD_BUF 20
+#define LENGTH_WKMOD_BUF 40
 extern char wkmod[LENGTH_WKMOD_BUF];
 
-#define LENGTH_PASSWORD_BUF 20
+#define LENGTH_PASSWORD_BUF 40
 extern char password[LENGTH_PASSWORD_BUF];
 
-#define LENGTH_SYSINFO_BUF 20 
+#define LENGTH_SYSINFO_BUF 40 
 extern char sysinfo[LENGTH_SYSINFO_BUF];
 
-#define LENGTH_SN_BUF  20
+#define LENGTH_SN_BUF  40
 extern char sn[LENGTH_SN_BUF];
 
-#define LENGTH_ICCID_BUF 20
+#define LENGTH_ICCID_BUF 40
 extern char iccid[LENGTH_ICCID_BUF];
 
 #define LENGTH_IMEI_BUF 40
 extern char imei[LENGTH_IMEI_BUF];
 
-#define LENGTH_CSQ_BUF 20
+#define LENGTH_CSQ_BUF 40
 extern char csq[LENGTH_CSQ_BUF];
 
 extern uint32_t  lastOutActivity;
@@ -70,6 +70,7 @@ typedef struct
 	char id[MSG_STR_LEN_OF_ID+1];
 	char length[MSG_STR_LEN_OF_LENGTH+1];
 	char seq[MSG_STR_LEN_OF_SEQ+1];
+	char dup[MSG_STR_LEN_OF_DUP+1];	
 	char device[MSG_STR_LEN_OF_DEVICE+1];
 	char ports[MSG_STR_LEN_OF_PORTS+1];
 	char period[MSG_STR_LEN_OF_PORTS_PERIOD+1];
@@ -116,6 +117,8 @@ enum
 	WRITE,
 };
 
+#define MAX_REGISTER_DATA_LENGTH   80
+#define MAX_HEART_DATA_LENGTH   80
 typedef struct
 {
 	bool isOn;
@@ -125,6 +128,14 @@ typedef struct
 	char *protocol;
 	char addr[50];
 	char port[10];
+	bool isRegEn;
+	char *regtp;
+	char regdt[MAX_REGISTER_DATA_LENGTH];
+	char *regsnd;
+	bool isHeartEn;
+	char heartdt[MAX_HEART_DATA_LENGTH];
+	char *heartsnd;
+	u16 hearttim;
 }SockSetting;
 
 enum
@@ -180,6 +191,8 @@ void SendHeart(void);
 void SendStartAck(void);
 void SendFinish(void);
 bool isWorking(void);
+bool RegEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting);
+bool HeartEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting);
 char *YR4G_SMS_Create(char *sms_data, char *raw);
 #endif
 

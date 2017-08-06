@@ -150,7 +150,6 @@ enum
 extern SockSetting socketSetting[SOCK_MAX];
 
 extern const char *msg_id[MSG_STR_ID_MAX];
-extern const char *msg_id_s[MSG_STR_ID_MAX];
 extern char  *cell;
 
 bool 	YR4G_Send_Cmd(char *cmd,char *ack,char *recv,u16 waittime);

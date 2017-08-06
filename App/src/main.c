@@ -127,7 +127,7 @@ int main(void)
 	while(1)
 	{		
 		while(isWorking())
-		{	
+		{
 			if(!dev.is_login)
 			{
 				if(dev.reply_timer >= REPLY_1_MIN)
@@ -149,7 +149,7 @@ int main(void)
 			
 			if(DumpQueue(recv) != NULL)
 			{
-				if(strstr(recv,"the module will be reset")!=NULL)
+				if((strstr(recv,"reset")!=NULL) || strstr(recv,"reboot")!=NULL)
 				{
 					goto Restart;
 				}
@@ -172,10 +172,10 @@ int main(void)
 						//回文正确
 						if(sum == sum_msg)
 						{
-							u8 seq = atoi(msgSrv->seq);
 							msgSrv = (MsgSrv *)p;
+							u8 seq = atoi(msgSrv->seq);							
 							lastInActivity = RTC_GetCounter();
-							BSP_Printf("[%d]: Recv Seq[%d] Dup[%d] from Server\n", lastInActivity, seq, atoi(msgSrv->dup));
+							BSP_Printf("[%d]: Recv[%d] Seq[%d] Dup[%d] from Server\n", lastInActivity, atoi(msgSrv->id), seq, atoi(msgSrv->dup));
 
 							if(!dev.is_login)
 							{
@@ -197,6 +197,8 @@ int main(void)
 							{
 								case MSG_STR_ID_OPEN:
 								{
+									BSP_Printf("MSG_STR_ID_OPEN from Server\n");
+									
 									if(seq <= dev.msg_seq_s)
 									{
 										SendStartAck();
@@ -213,7 +215,7 @@ int main(void)
 									interfaces = strtok(p+sizeof(MsgSrv), ",");
 									if(interfaces)
 									{						
-										//BSP_Printf("ports: %s\n", interfaces);
+										BSP_Printf("ports: %s\n", interfaces);
 									}
 									for(i=DEVICE_01; i<DEVICEn; i++)
 										interface_on[i]=(interfaces[i]=='1')?TRUE:FALSE;
@@ -221,7 +223,7 @@ int main(void)
 									periods = strtok(NULL, ",");
 									if(periods)
 									{						
-										//BSP_Printf("periods: %s\n", periods);	
+										BSP_Printf("periods: %s\n", periods);	
 									}
 									sscanf(periods, "%02d%02d%02d%02d,", &period_on[DEVICE_01], 
 										&period_on[DEVICE_02], &period_on[DEVICE_03], &period_on[DEVICE_04]);
@@ -242,7 +244,8 @@ int main(void)
 								break;
 								case MSG_STR_ID_CLOSE:
 								{
-									if(seq <= dev.msg_seq)
+									BSP_Printf("MSG_STR_ID_CLOSE from Server\n");	
+									if(seq < dev.msg_seq)
 										break;
 
 									dev.portClosed = 0;

@@ -118,7 +118,8 @@ void u3_printf(char* fmt,...)
 	{
 	  while(USART_GetFlagStatus(USART3,USART_FLAG_TC)==RESET); //循环发送,直到发送完毕   
 		USART_SendData(USART3,USART3_TX_BUF[j]); 
-	} 
+	}
+	dev.hb_ready = FALSE;	
 	dev.hb_timer = 0;
 }
 

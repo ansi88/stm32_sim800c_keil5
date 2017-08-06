@@ -220,8 +220,7 @@ uint32_t  lastInActivity=0;
 t_DEV dev;
 extern void Reset_Device_Status(u8 status);
 
-const char *msg_id[MSG_STR_ID_MAX]={"00", "01", "03", "05"};
-const char *msg_id_s[MSG_STR_ID_MAX]={"00", "01", "03", "05"};
+const char *msg_id[MSG_STR_ID_MAX]={"00", "01", "02", "03"};
 const char *msg_device="000";
 
 #define LINKA_PIN                         GPIO_Pin_11
@@ -527,6 +526,8 @@ bool GetICCID(void)
 				BSP_Printf("ICCID: %s\n", iccid);
 				break;
 			}
+			else
+				ret = FALSE;
 		}
 		delay_ms(1500);
 		retry--;
@@ -554,6 +555,8 @@ bool GetIMEI(void)
 				BSP_Printf("IMEI: %s\n", imei);
 				break;
 			}
+			else
+				ret = FALSE;			
 		}
 		
 		delay_ms(1500);
@@ -1234,7 +1237,7 @@ void SendStartAck(void)
 	if(GetUploadStr(MSG_STR_ID_OPEN, StartAck)!=0)
 	{
 		lastOutActivity = RTC_GetCounter();	
-		BSP_Printf("[%0.2d:%0.2d:%0.2d]Start-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60);		
+		BSP_Printf("[%0.2d:%0.2d:%0.2d]StartAck-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60);		
 		u3_printf(StartAck);
 	}
 }

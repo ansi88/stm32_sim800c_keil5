@@ -27,7 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "timer.h"
-#include "YR_4G.h"
+#include "SIM800_TP.h"
 #include "device.h"
 #include "queue.h"
 #include "rtc.h"
@@ -104,21 +104,21 @@ int main(void)
 		BSP_Printf("Power[%d]: %d\n", i, Device_Power_Status(i));
 	}
 	
-	YR4G_POWER_ON();  
-	YR4G_PWRKEY_ON();
-	BSP_Printf("YR4GC开机完成\r\n");
+	SIM800_TP_POWER_ON();  
+	SIM800_TP_PWRKEY_ON();
+	BSP_Printf("SIM800 power up\r\n");
 	
-	while(!YR4G_Link_Server())
+	while(!SIM800_TP_Link_Server())
 	{
-		BSP_Printf("INIT: YR Module not working\r\n");
+		BSP_Printf("INIT: SIM Module not working\r\n");
 		dev.need_reset = ERR_INIT_MODULE;
 	}
 
-	BSP_Printf("YR4GC Connect to Network\r\n");
+	BSP_Printf("SIM Connect to Network\r\n");
 
 	SendLogin();
 
-	BSP_Printf("YR4GC Send Login\r\n");
+	BSP_Printf("SIM Send Login\r\n");
 
 	TIM6_Int_Init(29999,2399);						     // 1s中断
 	TIM_SetCounter(TIM6,0); 
@@ -266,9 +266,9 @@ int main(void)
 
 Restart:
 		Reset_Device_Status();
-		while(!YR4G_Link_Server())
+		while(!SIM800_TP_Link_Server())
 		{
-			BSP_Printf("INIT: YR Module not working\r\n");
+			BSP_Printf("INIT: SIM Module not working\r\n");
 			dev.need_reset = ERR_INIT_MODULE;
 		}
 

@@ -425,14 +425,14 @@
               <FilePath>.\App\src\queue.c</FilePath>
             </File>
             <File>
-              <FileName>YR_4G.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\App\src\YR_4G.c</FilePath>
-            </File>
-            <File>
               <FileName>rtc.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\App\src\rtc.c</FilePath>
+            </File>
+            <File>
+              <FileName>YR_4G.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\App\src\YR_4G.c</FilePath>
             </File>
           </Files>
         </Group>

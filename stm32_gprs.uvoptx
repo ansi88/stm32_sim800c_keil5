@@ -295,8 +295,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\App\src\YR_4G.c</PathWithFileName>
-      <FilenameWithoutPath>YR_4G.c</FilenameWithoutPath>
+      <PathWithFileName>.\App\src\rtc.c</PathWithFileName>
+      <FilenameWithoutPath>rtc.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
@@ -307,8 +307,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\App\src\rtc.c</PathWithFileName>
-      <FilenameWithoutPath>rtc.c</FilenameWithoutPath>
+      <PathWithFileName>.\App\src\YR_4G.c</PathWithFileName>
+      <FilenameWithoutPath>YR_4G.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>

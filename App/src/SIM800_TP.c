@@ -17,7 +17,7 @@ const char *modetbl[2] = {"TCP","UDP"};//连接模式
 //const char  *ipaddr = "42.159.117.91";
 const char  *ipaddr = "116.62.187.167";
 //const char  *ipaddr = "42.159.107.250";
-const char  *port = "8090";
+const char  *port = "8089";
 const char delim=',';
 const char ending='#';
 
@@ -192,12 +192,12 @@ bool GetICCID(void)
 			memset(iccid, 0, sizeof(iccid));
 			for(i=0; i<LENGTH_ICCID_BUF; i++)
 			{
-				if((recv[OFFSET_ICCID+i]==0)||(recv[OFFSET_ICCID+i]=='\r')||(recv[OFFSET_ICCID+i]=='\n'))
+				if((recv[i]==0)||(recv[i]=='\r')||(recv[i]=='\n'))
 				{
 					ret = FALSE;
 					break;
 				}
-				iccid[i]=recv[OFFSET_ICCID+i];
+				iccid[i]=recv[i];
 			}
 			if(i==LENGTH_ICCID_BUF)
 			{
@@ -355,18 +355,21 @@ bool Link_Server_AT(u8 mode,const char* ipaddr,const char *port)
 		if(ret)
 		{
 			delay_s(2);
+			break;
+#if 0			
 			ret = SIM800_TP_Send_Cmd("AT+CIPSTATUS","OK",recv,500);
 			if(ret)
 			{
 				if(strstr(recv,"CONNECT OK") != NULL)
 					return ret;
-				if(strstr(recv,"CLOSED") != NULL)
+				if((strstr(recv,"CLOSED") != NULL)||(strstr(recv,"PDP DEACT") != NULL))
 				{
 					ret = SIM800_TP_Send_Cmd("AT+CIPCLOSE=1","CLOSE OK",recv,500);
 					ret = SIM800_TP_Send_Cmd("AT+CIPSHUT","SHUT OK",recv,500);
 					ret = FALSE;
 				}
 			}
+#endif			
 		}
 		
 		retry--;
@@ -715,14 +718,15 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 	Device_Timer_Status(msg->period);
 	msg->period[MSG_STR_LEN_OF_PORTS_PERIOD] = delim;
 
+	strcpy(p_left, "YR4G_");
+	p_left += strlen("YR4G_");
+	strncpy(p_left, "89860060011620001136", LENGTH_ICCID_BUF);
+	p_left += 20;
+	*p_left++ = delim;
+			
 	switch(msg_str_id)
 	{
 		case MSG_STR_ID_LOGIN:	
-			strcpy(p_left, "SIM800_");
-			p_left += strlen("SIM800_");
-			strncpy(p_left, iccid, LENGTH_ICCID_BUF);
-			p_left += strlen(iccid);
-			*p_left++ = delim;			
 		case MSG_STR_ID_HB:
 		case MSG_STR_ID_OPEN:
 		break;	

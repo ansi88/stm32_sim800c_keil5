@@ -242,7 +242,7 @@ int main(void)
 								break;
 								case MSG_STR_ID_CLOSE:
 								{
-									if(seq <= dev.msg_seq)
+									if(seq < dev.msg_seq)
 										break;
 
 									dev.portClosed = 0;

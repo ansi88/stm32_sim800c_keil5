@@ -197,13 +197,7 @@ int main(void)
 							{
 								case MSG_STR_ID_OPEN:
 								{
-									if(seq <= dev.msg_seq_s)
-									{
-										SendStartAck();
-										break;
-									}
-									else
-										dev.msg_seq_s = seq;
+									dev.msg_seq_s = seq;
 									
 									char *interfaces, *periods;
 									bool interface_on[DEVICEn]={FALSE};
@@ -216,8 +210,17 @@ int main(void)
 										//BSP_Printf("ports: %s\n", interfaces);
 									}
 									for(i=DEVICE_01; i<DEVICEn; i++)
+									{
 										interface_on[i]=(interfaces[i]=='1')?TRUE:FALSE;
-										
+										if((interface_on[i]) && (g_device_status[i].seq == seq))
+										{
+											SendStartAck();
+											break;
+										}
+										else
+											g_device_status[i].seq = seq;
+									}
+									
 									periods = strtok(NULL, ",");
 									if(periods)
 									{						
@@ -242,8 +245,8 @@ int main(void)
 								break;
 								case MSG_STR_ID_CLOSE:
 								{
-									if(seq < dev.msg_seq)
-										break;
+									//if(seq < dev.msg_seq)
+									//	break;
 
 									dev.portClosed = 0;
 									dev.wait_reply = FALSE;

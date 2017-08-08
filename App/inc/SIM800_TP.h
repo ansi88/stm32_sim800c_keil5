@@ -5,7 +5,6 @@
 
 #define LENGTH_ICCID_BUF 20
 extern char iccid[LENGTH_ICCID_BUF+1];
-#define OFFSET_ICCID 2     
 
 extern uint32_t  lastOutActivity;
 extern uint32_t  lastInActivity;

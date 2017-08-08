@@ -787,7 +787,7 @@ void SendStartAck(void)
 	if(GetUploadStr(MSG_STR_ID_OPEN, StartAck)!=0)
 	{
 		lastOutActivity = RTC_GetCounter();	
-		BSP_Printf("[%0.2d:%0.2d:%0.2d]Start-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60);		
+		BSP_Printf("[%0.2d:%0.2d:%0.2d]StartAck-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60);		
 		u3_printf(StartAck);
 	}
 }

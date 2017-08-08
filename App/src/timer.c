@@ -10,8 +10,12 @@
 
 extern void Reset_Device_Status(u8 status);
 
-//定时器6中断服务程序		    
+//定时器6中断服务程序	
+#if defined(STM32F10X_MD_VL)
+void TIM6_DAC_IRQHandler(void)
+#elif defined (STM32F10X_HD)
 void TIM6_IRQHandler(void)
+#endif
 {
 	u8 index;
 	if(TIM_GetITStatus(TIM6, TIM_IT_Update) != RESET)					  //是更新中断
@@ -130,8 +134,11 @@ void TIM6_Int_Init(u16 arr,u16 psc)
 	TIM_ITConfig(TIM6,TIM_IT_Update,ENABLE );                   //使能指定的TIM6中断,允许更新中断
 	
 	//TIM_Cmd(TIM6,ENABLE);//开启定时器6
-	
+#if defined(STM32F10X_MD_VL)
+	NVIC_InitStructure.NVIC_IRQChannel = TIM6_DAC_IRQn;
+#elif defined (STM32F10X_HD)
 	NVIC_InitStructure.NVIC_IRQChannel = TIM6_IRQn;
+#endif
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2 ;//抢占优先级0
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;		//子优先级3
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//IRQ通道使能

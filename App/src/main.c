@@ -120,7 +120,11 @@ int main(void)
 
 	BSP_Printf("SIM Send Login\r\n");
 
-	TIM6_Int_Init(29999,2399);						     // 1sÖÐ¶Ï
+#if defined(STM32F10X_MD_VL)
+	TIM6_Int_Init(9999,2399);						     // 1sÖÐ¶Ï
+#elif defined (STM32F10X_HD)
+	TIM6_Int_Init(29999,2399);	
+#endif
 	TIM_SetCounter(TIM6,0); 
 	TIM_Cmd(TIM6,ENABLE);
 	
@@ -128,6 +132,10 @@ int main(void)
 	{		
 		while(isWorking())
 		{	
+			if(((lastInActivity>lastOutActivity)&&((lastInActivity-lastOutActivity)>DISCONNECT_TIMEOUT))
+				|| ((lastOutActivity>lastInActivity)&&((lastOutActivity-lastInActivity)>DISCONNECT_TIMEOUT)))
+				goto Restart;
+			
 			if(!dev.is_login)
 			{
 				if(dev.reply_timer >= REPLY_1_MIN)
@@ -149,7 +157,7 @@ int main(void)
 			
 			if(DumpQueue(recv) != NULL)
 			{
-				if(strstr(recv,"the module will be reset")!=NULL)
+				if((strstr(recv,"reset")!=NULL)||(strstr(recv,"PDP DEACT")!=NULL))
 				{
 					goto Restart;
 				}

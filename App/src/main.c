@@ -149,7 +149,7 @@ int main(void)
 					dev.hb_ready = FALSE;
 				}
 
-				if(dev.wait_reply && (dev.reply_timer >= REPLY_1_MIN))
+				if(((dev.portClosed != 0) && !dev.wait_reply) ||(dev.wait_reply && (dev.reply_timer >= REPLY_1_MIN)))
 				{
 					SendFinish();
 				}
@@ -157,7 +157,7 @@ int main(void)
 			
 			if(DumpQueue(recv) != NULL)
 			{
-				if((strstr(recv,"reset")!=NULL)||(strstr(recv,"DEACT")!=NULL))
+				if((strstr(recv,"CLOSED")!=NULL)||(strstr(recv,"DEACT")!=NULL))
 				{
 					goto Restart;
 				}
@@ -180,10 +180,10 @@ int main(void)
 						//回文正确
 						if(sum == sum_msg)
 						{
+							msgSrv = (MsgSrv *)p;						
 							u8 seq = atoi(msgSrv->seq);
-							msgSrv = (MsgSrv *)p;
 							lastInActivity = RTC_GetCounter();
-							BSP_Printf("[%d]: Recv Seq[%d] Dup[%d] from Server\n", lastInActivity, seq, atoi(msgSrv->dup));
+							BSP_Printf("[%d]: Recv[%d] Seq[%d] Dup[%d] from Server\n", lastInActivity, atoi(msgSrv->id), seq, atoi(msgSrv->dup));
 
 							if(!dev.is_login)
 							{
@@ -253,9 +253,9 @@ int main(void)
 								break;
 								case MSG_STR_ID_CLOSE:
 								{
-									//if(seq < dev.msg_seq)
-									//	break;
-
+									if(seq < dev.msg_seq)
+										break;
+									
 									dev.portClosed = 0;
 									dev.wait_reply = FALSE;
 								}

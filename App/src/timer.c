@@ -56,7 +56,8 @@ void TIM6_IRQHandler(void)
 							Device_OFF(index);
 							BSP_Printf("TIM6: 设置设备状态为CLOSE_DEVICE\r\n");
 							dev.portClosed |= 1<<index;
-							SendFinish();
+							if(dev.is_login)
+								SendFinish();
 						}
 						else
 							g_device_status[index].passed++;

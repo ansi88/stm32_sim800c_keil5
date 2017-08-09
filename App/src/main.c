@@ -157,7 +157,7 @@ int main(void)
 			
 			if(DumpQueue(recv) != NULL)
 			{
-				if((strstr(recv,"reset")!=NULL)||(strstr(recv,"PDP DEACT")!=NULL))
+				if((strstr(recv,"reset")!=NULL)||(strstr(recv,"DEACT")!=NULL))
 				{
 					goto Restart;
 				}
@@ -277,6 +277,7 @@ int main(void)
 
 Restart:
 		Reset_Device_Status();
+		SIM800_TP_Power_Restart();	
 		while(!SIM800_TP_Link_Server())
 		{
 			BSP_Printf("INIT: SIM Module not working\r\n");

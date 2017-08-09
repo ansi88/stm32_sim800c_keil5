@@ -128,6 +128,10 @@ int main(void)
 	{		
 		while(isWorking())
 		{
+			if(((lastInActivity>lastOutActivity)&&((lastInActivity-lastOutActivity)>DISCONNECT_TIMEOUT))
+				|| ((lastOutActivity>lastInActivity)&&((lastOutActivity-lastInActivity)>DISCONNECT_TIMEOUT)))
+				goto Restart;
+			
 			if(!dev.is_login)
 			{
 				if(dev.reply_timer >= REPLY_1_MIN)
@@ -141,7 +145,7 @@ int main(void)
 					dev.hb_ready = FALSE;
 				}
 
-				if(dev.wait_reply && (dev.reply_timer >= REPLY_1_MIN))
+				if(((dev.portClosed != 0) && !dev.wait_reply) ||(dev.wait_reply && (dev.reply_timer >= REPLY_1_MIN)))
 				{
 					SendFinish();
 				}
@@ -172,8 +176,8 @@ int main(void)
 						//回文正确
 						if(sum == sum_msg)
 						{
-							msgSrv = (MsgSrv *)p;
-							u8 seq = atoi(msgSrv->seq);							
+							msgSrv = (MsgSrv *)p;						
+							u8 seq = atoi(msgSrv->seq);
 							lastInActivity = RTC_GetCounter();
 							BSP_Printf("[%d]: Recv[%d] Seq[%d] Dup[%d] from Server\n", lastInActivity, atoi(msgSrv->id), seq, atoi(msgSrv->dup));
 
@@ -197,15 +201,7 @@ int main(void)
 							{
 								case MSG_STR_ID_OPEN:
 								{
-									BSP_Printf("MSG_STR_ID_OPEN from Server\n");
-									
-									if(seq <= dev.msg_seq_s)
-									{
-										SendStartAck();
-										break;
-									}
-									else
-										dev.msg_seq_s = seq;
+									dev.msg_seq_s = seq;
 									
 									char *interfaces, *periods;
 									bool interface_on[DEVICEn]={FALSE};
@@ -215,15 +211,24 @@ int main(void)
 									interfaces = strtok(p+sizeof(MsgSrv), ",");
 									if(interfaces)
 									{						
-										BSP_Printf("ports: %s\n", interfaces);
+										//BSP_Printf("ports: %s\n", interfaces);
 									}
 									for(i=DEVICE_01; i<DEVICEn; i++)
+									{
 										interface_on[i]=(interfaces[i]=='1')?TRUE:FALSE;
+										if((interface_on[i]) && (g_device_status[i].seq == seq))
+										{
+											SendStartAck();
+											break;
+										}
+										else
+											g_device_status[i].seq = seq;
+									}
 										
 									periods = strtok(NULL, ",");
 									if(periods)
 									{						
-										BSP_Printf("periods: %s\n", periods);	
+										//BSP_Printf("periods: %s\n", periods);	
 									}
 									sscanf(periods, "%02d%02d%02d%02d,", &period_on[DEVICE_01], 
 										&period_on[DEVICE_02], &period_on[DEVICE_03], &period_on[DEVICE_04]);
@@ -244,7 +249,6 @@ int main(void)
 								break;
 								case MSG_STR_ID_CLOSE:
 								{
-									BSP_Printf("MSG_STR_ID_CLOSE from Server\n");	
 									if(seq < dev.msg_seq)
 										break;
 

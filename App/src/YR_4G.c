@@ -1136,10 +1136,10 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 	msg->length[MSG_STR_LEN_OF_LENGTH] = delim;
 	switch(msg_str_id)
 	{
-		case MSG_STR_ID_CLOSE:
+		case MSG_STR_ID_OPEN:
 			sprintf(msg->seq,"%03d",dev.msg_seq_s);
 		break;
-		case MSG_STR_ID_OPEN:
+		case MSG_STR_ID_CLOSE:
 		case MSG_STR_ID_HB:
 		case MSG_STR_ID_LOGIN:
 			sprintf(msg->seq,"%03d",++dev.msg_seq);	

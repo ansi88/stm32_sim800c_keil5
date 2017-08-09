@@ -24,6 +24,7 @@ typedef struct
 	u32 power;
 	u32 total; 
 	u32 passed;
+	u32 seq;
 } Device_Info;
 
 

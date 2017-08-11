@@ -91,7 +91,7 @@ int main(void)
 	usart1_init(115200);                            //串口1,Log
 #endif
 	
-	usart3_init(115200);                            //串口3,对接YR4G
+	usart3_init(115200);                            //串口3,对接SIM800/YR4G
 
 	rtc_init();	
 	Reset_Device_Status();
@@ -225,8 +225,6 @@ int main(void)
 											SendStartAck();
 											break;
 										}
-										else
-											g_device_status[i].seq = seq;
 									}
 									
 									periods = strtok(NULL, ",");
@@ -243,7 +241,8 @@ int main(void)
 										{
 											g_device_status[i].total = period_on[i] * NUMBER_TIMER_1_MINUTE;
 											g_device_status[i].passed = 0;
-											g_device_status[i].power = ON;		
+											g_device_status[i].power = ON;	
+											g_device_status[i].seq = seq;
 											Device_ON(i);	
 										}			
 									}
@@ -276,7 +275,15 @@ int main(void)
 		}
 
 Restart:
+	#ifdef LOG_ENABLE	
+		usart1_init(115200);
+	#endif
+	
+		usart3_init(115200);
+
 		Reset_Device_Status();
+		Clear_Usart3();	
+
 		SIM800_TP_Power_Restart();	
 		while(!SIM800_TP_Link_Server())
 		{

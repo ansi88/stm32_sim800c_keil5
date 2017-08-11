@@ -19,7 +19,7 @@ extern uint32_t  lastInActivity;
 #define MSG_STR_LEN_OF_SEQ                               3
 #define MSG_STR_LEN_OF_DUP                               2
 #define MSG_STR_LEN_OF_DEVICE                          3
-#define MSG_STR_LEN_OF_PORTS                           4
+#define MSG_STR_LEN_OF_PORTS                           DEVICEn
 #define MSG_STR_LEN_OF_PORTS_PERIOD            (MSG_STR_LEN_OF_PORTS*4)
 
 typedef struct
@@ -45,6 +45,7 @@ typedef struct
 	char device[MSG_STR_LEN_OF_DEVICE+1];
 	char ports[MSG_STR_LEN_OF_PORTS+1];
 	char period[MSG_STR_LEN_OF_PORTS_PERIOD+1];
+	//u8 preSeq[MSG_STR_LEN_OF_PORTS+1];
 }MsgDev;
 
 typedef struct
@@ -116,6 +117,7 @@ void SIM800_TP_PWRKEY_OFF(void);
 
 void SIM800_TP_GPRS_Restart(void);
 void SIM800_TP_Powerkey_Restart(void);
+void SIM800_TP_Power_Restart(void);
 bool SIM800_TP_Link_Server_AT(void);
 bool SIM800_TP_Link_Server(void);
 

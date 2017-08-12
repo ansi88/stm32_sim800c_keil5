@@ -115,7 +115,8 @@ int main(void)
 	}
 
 	BSP_Printf("SIM Connect to Network\r\n");
-
+	
+	lastInActivity = lastOutActivity = RTC_GetCounter();
 	SendLogin();
 
 	BSP_Printf("SIM Send Login\r\n");
@@ -134,7 +135,10 @@ int main(void)
 		{	
 			if(((lastInActivity>lastOutActivity)&&((lastInActivity-lastOutActivity)>DISCONNECT_TIMEOUT))
 				|| ((lastOutActivity>lastInActivity)&&((lastOutActivity-lastInActivity)>DISCONNECT_TIMEOUT)))
+			{
+				BSP_Printf("lastInActivity: %d, lastOutActivity%d\n", lastInActivity, lastOutActivity);
 				goto Restart;
+			}
 			
 			if(!dev.is_login)
 			{
@@ -194,6 +198,7 @@ int main(void)
 									{
 										RTC_Configuration();
 										Time_Adjust(TimeVar);
+										lastInActivity = lastOutActivity = RTC_GetCounter();										
 										dev.is_login = TRUE;
 									}
 								}

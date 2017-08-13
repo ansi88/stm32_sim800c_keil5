@@ -139,6 +139,19 @@ int main(void)
 				BSP_Printf("lastInActivity: %d, lastOutActivity%d\n", lastInActivity, lastOutActivity);
 				goto Restart;
 			}
+
+			if((lastInActivity>TIMEVAL_MAX) || (lastOutActivity>TIMEVAL_MAX))
+			{
+				uint32_t temp=RTC_GetCounter();
+				while(temp>TIMEVAL_MAX)
+					temp-=(TIMEVAL_MAX+1);
+				RTC_Configuration();
+				Time_Adjust(temp);
+				while(lastInActivity>TIMEVAL_MAX)
+					lastInActivity-=(TIMEVAL_MAX+1);
+				while(lastOutActivity>TIMEVAL_MAX)
+					lastOutActivity-=(TIMEVAL_MAX+1);				
+			}
 			
 			if(!dev.is_login)
 			{
@@ -194,7 +207,7 @@ int main(void)
 								if(atoi(msgSrv->id) == MSG_STR_ID_LOGIN)
 								{
 									uint32_t TimeVar=atoi(p+sizeof(MsgSrv));
-									if((TimeVar > 0) && (TimeVar < TIMEVAL_MAX))
+									if((TimeVar > 0) && (TimeVar <= TIMEVAL_MAX))
 									{
 										RTC_Configuration();
 										Time_Adjust(TimeVar);
@@ -295,7 +308,7 @@ Restart:
 			BSP_Printf("INIT: SIM Module not working\r\n");
 			dev.need_reset = ERR_INIT_MODULE;
 		}
-
+		lastInActivity = lastOutActivity = RTC_GetCounter();
 		SendLogin();	
 	}
 }

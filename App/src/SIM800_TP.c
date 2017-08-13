@@ -178,6 +178,14 @@ bool GetCSQ(void)
 	return ret;
 }
 
+bool isValidCCID(char ch)
+{
+	if (((*str >= '0') && (*str <= '9')) || ((*str >= 'a') && (*str <= 'z')) || ((*str >= 'A') && (*str <= 'Z')))
+		return TRUE;
+
+	return FALSE;
+}
+
 bool GetICCID(void)
 {
 	u8 retry = RETRY_COUNT;
@@ -192,7 +200,7 @@ bool GetICCID(void)
 			memset(iccid, 0, sizeof(iccid));
 			for(i=0; i<LENGTH_ICCID_BUF; i++)
 			{
-				if((recv[i]==0)||(recv[i]=='\r')||(recv[i]=='\n'))
+				if(!isValidCCID(recv[i]))
 				{
 					ret = FALSE;
 					break;
@@ -354,22 +362,17 @@ bool Link_Server_AT(u8 mode,const char* ipaddr,const char *port)
 		ret = SIM800_TP_Send_Cmd(cmd,"CONNECT",recv,15000);
 		if(ret)
 		{
-			delay_s(2);
-			break;
-#if 0			
-			ret = SIM800_TP_Send_Cmd("AT+CIPSTATUS","OK",recv,500);
-			if(ret)
+			if((strstr(recv,"CLOSED") != NULL)||(strstr(recv,"PDP DEACT") != NULL))
 			{
-				if(strstr(recv,"CONNECT OK") != NULL)
-					return ret;
-				if((strstr(recv,"CLOSED") != NULL)||(strstr(recv,"PDP DEACT") != NULL))
-				{
-					ret = SIM800_TP_Send_Cmd("AT+CIPCLOSE=1","CLOSE OK",recv,500);
-					ret = SIM800_TP_Send_Cmd("AT+CIPSHUT","SHUT OK",recv,500);
-					ret = FALSE;
-				}
+				ret = SIM800_TP_Send_Cmd("AT+CIPCLOSE=1","CLOSE OK",recv,500);
+				ret = SIM800_TP_Send_Cmd("AT+CIPSHUT","SHUT OK",recv,500);
+				ret = FALSE;
 			}
-#endif			
+			else
+			{
+				delay_s(2);
+				break;
+			}
 		}
 		
 		retry--;

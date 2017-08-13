@@ -180,7 +180,7 @@ bool GetCSQ(void)
 
 bool isValidCCID(char ch)
 {
-	if (((*str >= '0') && (*str <= '9')) || ((*str >= 'a') && (*str <= 'z')) || ((*str >= 'A') && (*str <= 'Z')))
+	if (((ch >= '0') && (ch <= '9')) || ((ch >= 'a') && (ch <= 'z')) || ((ch >= 'A') && (ch <= 'Z')))
 		return TRUE;
 
 	return FALSE;

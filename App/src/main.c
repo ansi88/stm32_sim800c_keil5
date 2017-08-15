@@ -136,17 +136,15 @@ int main(void)
 				goto Restart;
 			}
 
-			if((lastInActivity>TIMEVAL_MAX) || (lastOutActivity>TIMEVAL_MAX))
+			if((lastInActivity>TIMEVAL_MAX) && (lastOutActivity>TIMEVAL_MAX))
 			{
 				uint32_t temp=RTC_GetCounter();
 				while(temp>TIMEVAL_MAX)
 					temp-=(TIMEVAL_MAX+1);
 				RTC_Configuration();
 				Time_Adjust(temp);
-				while(lastInActivity>TIMEVAL_MAX)
-					lastInActivity-=(TIMEVAL_MAX+1);
-				while(lastOutActivity>TIMEVAL_MAX)
-					lastOutActivity-=(TIMEVAL_MAX+1);				
+				lastInActivity-=(TIMEVAL_MAX+1);
+				lastOutActivity-=(TIMEVAL_MAX+1);				
 			}
 			
 			if(!dev.is_login)

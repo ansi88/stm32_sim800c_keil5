@@ -1,6 +1,7 @@
 #include "stm32f10x_conf.h"
 #include <stdio.h>
 #include "rtc.h"
+#include "usart.h"
 
 void rtc_init(void)
 {
@@ -12,12 +13,12 @@ void rtc_init(void)
     /* Backup data register value is not correct or not yet programmed (when
        the first time the program is executed) */
 
-    printf("\r\n\n RTC not yet configured....");
+    BSP_Printf("\r\n\n RTC not yet configured....");
 
     /* RTC Configuration */
     RTC_Configuration();
 
-    printf("\r\n RTC configured....");
+    BSP_Printf("\r\n RTC configured....");
 
     /* Adjust time by values entered by the user on the hyperterminal */
     Time_Adjust(0);
@@ -29,15 +30,15 @@ void rtc_init(void)
     /* Check if the Power On Reset flag is set */
     if (RCC_GetFlagStatus(RCC_FLAG_PORRST) != RESET)
     {
-      printf("\r\n\n Power On Reset occurred....");
+      BSP_Printf("\r\n\n Power On Reset occurred....");
     }
     /* Check if the Pin Reset flag is set */
     else if (RCC_GetFlagStatus(RCC_FLAG_PINRST) != RESET)
     {
-      printf("\r\n\n External Reset occurred....");
+      BSP_Printf("\r\n\n External Reset occurred....");
     }
 
-    printf("\r\n No need to configure RTC....");
+    BSP_Printf("\r\n No need to configure RTC....");
     /* Wait for RTC registers synchronization */
     RTC_WaitForSynchro();
 
@@ -163,5 +164,5 @@ void Time_Display(uint32_t TimeVar)
   /* Compute seconds */
   TSS = (TimeVar % 3600) % 60;
 
-  printf("Time: %0.2d:%0.2d:%0.2d\r", THH, TMM, TSS);
+  BSP_Printf("Time: %0.2d:%0.2d:%0.2d\r", THH, TMM, TSS);
 }

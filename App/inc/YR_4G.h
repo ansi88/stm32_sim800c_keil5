@@ -47,8 +47,9 @@ extern uint32_t  lastInActivity;
 #define MSG_STR_LEN_OF_SEQ                               3
 #define MSG_STR_LEN_OF_DUP                               2
 #define MSG_STR_LEN_OF_DEVICE                          3
-#define MSG_STR_LEN_OF_PORTS                           4
-#define MSG_STR_LEN_OF_PORTS_PERIOD            (MSG_STR_LEN_OF_PORTS*4)
+#define MSG_STR_LEN_OF_PORTS                           DEVICEn
+#define MSG_STR_LEN_OF_PORTS_PERIOD            (DEVICEn*4)
+#define MSG_STR_LEN_OF_PORTS_SEQ            (DEVICEn*MSG_STR_LEN_OF_SEQ)
 
 typedef struct
 {
@@ -74,6 +75,7 @@ typedef struct
 	char device[MSG_STR_LEN_OF_DEVICE+1];
 	char ports[MSG_STR_LEN_OF_PORTS+1];
 	char period[MSG_STR_LEN_OF_PORTS_PERIOD+1];
+	char preSeq[MSG_STR_LEN_OF_PORTS_SEQ+1];	
 }MsgDev;
 
 typedef struct

@@ -509,7 +509,7 @@ bool GetSN(void)
 
 bool GetICCID(void)
 {
-	u8 retry = RETRY_AT;
+	u8 retry = RETRY_AT*3;
 	u8 id=AT_ICCID;
 	char recv[50];	
 	bool ret = FALSE;
@@ -538,14 +538,14 @@ bool GetICCID(void)
 
 bool GetIMEI(void)
 {
-	u8 retry = RETRY_AT;
+	u8 retry = RETRY_AT*3;
 	u8 id=AT_IMEI;
 	char recv[50];	
 	bool ret = FALSE;
 
 	while(retry != 0)
 	{
-		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
+		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,200);
 		if(ret) 
 		{
 			memset(imei, 0, sizeof(imei));
@@ -1165,26 +1165,17 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 	Device_Timer_Status(msg->period);
 	msg->period[MSG_STR_LEN_OF_PORTS_PERIOD] = delim;
 
-	strcpy(p_left, "YR4G_");
-	p_left += strlen("YR4G_");
+	for(char *p=msg->preSeq, i = 0; i < DEVICEn; i++)
+ 	{	
+		sprintf(p, "%03d", g_device_status[i].seq);
+		p+=MSG_STR_LEN_OF_SEQ;	
+	}
+
+	msg->preSeq[MSG_STR_LEN_OF_PORTS_SEQ] = delim;
+	
 	strncpy(p_left, iccid, LENGTH_ICCID_BUF);
 	p_left += strlen(iccid);
 	*p_left++ = delim;
-			
-	switch(msg_str_id)
-	{
-		case MSG_STR_ID_LOGIN:	
-		case MSG_STR_ID_HB:
-		case MSG_STR_ID_OPEN:
-		break;	
-		case MSG_STR_ID_CLOSE:
-			*p_left++ = dev.portClosed;	
-			*p_left++ = delim;	
-		break;
-		
-		default:
-		break;
-	}
 	
   	sprintf(msg->length,"%03d",strlen(msg_str)-sizeof(msg->header)-sizeof(msg->id)-sizeof(msg->length)+5);
 	msg->length[MSG_STR_LEN_OF_LENGTH] = delim;	
@@ -1212,7 +1203,7 @@ void SendLogin(void)
 	if(GetUploadStr(MSG_STR_ID_LOGIN, Loginbuf) != 0)
 	{
 		lastOutActivity = RTC_GetCounter();
-		BSP_Printf("[%0.2d:%0.2d:%0.2d]Login-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60);		
+		BSP_Printf("[%0.2d:%0.2d:%0.2d][%d]Login-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60, lastOutActivity);		
 		u3_printf(Loginbuf);
 	}
 	dev.reply_timer = 0;
@@ -1225,7 +1216,7 @@ void SendHeart(void)
 	if(GetUploadStr(MSG_STR_ID_HB, HBbuf)!=0)
 	{
 		lastOutActivity = RTC_GetCounter();  /* Compute  hours */		
-		BSP_Printf("[%0.2d:%0.2d:%0.2d]HB-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60);		
+		BSP_Printf("[%0.2d:%0.2d:%0.2d][%d]HB-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60, lastOutActivity);		
 		u3_printf(HBbuf);
 	}
 }
@@ -1237,7 +1228,7 @@ void SendStartAck(void)
 	if(GetUploadStr(MSG_STR_ID_OPEN, StartAck)!=0)
 	{
 		lastOutActivity = RTC_GetCounter();	
-		BSP_Printf("[%0.2d:%0.2d:%0.2d]StartAck-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60);		
+		BSP_Printf("[%0.2d:%0.2d:%0.2d][%d]StartAck-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60, lastOutActivity);		
 		u3_printf(StartAck);
 	}
 }
@@ -1249,7 +1240,7 @@ void SendFinish(void)
 	if(GetUploadStr(MSG_STR_ID_CLOSE, FinishBuf)!=0)
 	{
 		lastOutActivity = RTC_GetCounter();	
-		BSP_Printf("[%0.2d:%0.2d:%0.2d]Finish-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60);		
+		BSP_Printf("[%0.2d:%0.2d:%0.2d][%d]Finish-", lastOutActivity / 3600, (lastOutActivity % 3600) / 60, (lastOutActivity % 3600) % 60, lastOutActivity);		
 		u3_printf(FinishBuf);
 	}
 	dev.wait_reply = TRUE;

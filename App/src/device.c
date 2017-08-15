@@ -53,6 +53,8 @@ void Device_Init(void)
 	Device_OFF(DEVICE_04);
 
 	memset(g_device_status, 0, sizeof(Device_Info)*DEVICEn);
+	for(u8 i=0; i<DEVICEn; i++)
+		g_device_status[i].seq=0xFF;
 
 }
 

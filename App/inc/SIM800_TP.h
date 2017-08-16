@@ -10,6 +10,16 @@ extern uint32_t  lastOutActivity;
 extern uint32_t  lastInActivity;
 
 /*********WJ*********/
+#ifdef BOARD_V2
+#define POWER_PIN                         GPIO_Pin_5
+#define POWER_GPIO_PORT                   GPIOA
+#define POWER_GPIO_PORT_CLK               RCC_APB2Periph_GPIOA
+#else
+#define POWER_PIN                         GPIO_Pin_8
+#define POWER_GPIO_PORT                   GPIOB
+#define POWER_GPIO_PORT_CLK               RCC_APB2Periph_GPIOB
+#endif
+
 #define MSG_STR_DEVICE_HEADER       "TRVAP"
 #define MSG_STR_SERVER_HEADER       "TRVBP"
 

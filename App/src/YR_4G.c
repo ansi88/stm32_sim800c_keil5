@@ -236,8 +236,8 @@ const char *msg_device="000";
 #define WORK_GPIO_PORT_CLK               RCC_APB2Periph_GPIOF
 
 #define RESET_PIN                         GPIO_Pin_9
-#define RESET_GPIO_PORT                   GPIOF
-#define RESET_GPIO_PORT_CLK               RCC_APB2Periph_GPIOF
+#define RESET_GPIO_PORT                   GPIOB
+#define RESET_GPIO_PORT_CLK               RCC_APB2Periph_GPIOB
 
 void YR4G_Port_Init(void)
 {
@@ -858,159 +858,44 @@ char *YR4G_SMS_Create(char *sms_data, char *raw)
 	return sms_data;
 }
 
-void YR4G_POWER_ON(void)
+void YR4G_Reset(void)
 {
 	u8 i= 0;
-	
 	GPIO_InitTypeDef  GPIO_InitStructure;
  	
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);	 
+	RCC_APB2PeriphClockCmd(RESET_GPIO_PORT_CLK, ENABLE);	 
 	
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8 ;				 
+	GPIO_InitStructure.GPIO_Pin = RESET_PIN ;				 
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 		
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;		 
-	GPIO_Init(GPIOB, &GPIO_InitStructure);	
+	GPIO_Init(RESET_GPIO_PORT, &GPIO_InitStructure);	
 
-	GPIO_SetBits(GPIOB,GPIO_Pin_8);	
-
-	for(i = 0; i < 5; i++)
-	{
-		delay_ms(1000);	
-	}
-}
-
-//关闭4G模块的电源芯片，当做急停按钮来使用
-void YR4G_POWER_OFF(void)
-{
-	u8 i= 0;
-
-	GPIO_InitTypeDef  GPIO_InitStructure;
- 	
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);	 
-	
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8 ;				 
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 		
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;		 
-	GPIO_Init(GPIOB, &GPIO_InitStructure);	
-	
-	//电源芯片的失能
-	GPIO_ResetBits(GPIOB,GPIO_Pin_8);	
-
-	for(i = 0; i < 5; i++)
-	{
-		delay_ms(1000);	
-	}
-
-}
-
-void YR4G_PWRKEY_ON(void)
-{
-	static bool abc=FALSE;
-	u8 i= 0;
-	char recv[100];
-	GPIO_InitTypeDef  GPIO_InitStructure;
- 	
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);	 
-	
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9 ;				 
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 		
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;		 
-	GPIO_Init(GPIOB, &GPIO_InitStructure);	
-
-	//PWRKEY的使能
-	GPIO_SetBits(GPIOB,GPIO_Pin_9);	
+	GPIO_ResetBits(RESET_GPIO_PORT,RESET_PIN);	
 
 	for(i = 0; i < 2; i++)
 	{
-		delay_ms(1000);	
-	}
-	//开机控制引脚释放
-	GPIO_ResetBits(GPIOB,GPIO_Pin_9);
-	for(i = 0; i < 2; i++)
-	{
-		delay_ms(1000);	
+		delay_s(1);	
 	}
 
-	while(!abc)
+	GPIO_SetBits(RESET_GPIO_PORT,RESET_PIN);
+	for(i = 0; i < 2; i++)
 	{
-		delay_ms(1500);
+		delay_s(1);	
+	}
+}
+
+void YR4G_ResetRestart(void)
+{
+	char recv[100];	
+	BSP_Printf("Reset Restart\r\n");
+	YR4G_Reset();
+	while(1)
+	{
+		delay_s(2);
 		if(DumpQueue(recv) != NULL)
 			if(strstr(recv,YR4G_STARTUP_MSG)!=NULL)
-			{
-				abc = TRUE;
 				break;
-			}
 	}
-}
-
-//通过4G模块的PWRKEY来实现开关机
-void YR4G_PWRKEY_OFF(void)
-{
-	u8 i= 0;
-	
-	GPIO_InitTypeDef  GPIO_InitStructure;
- 	
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);	 
-	
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9 ;				 
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 		
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;		 
-	GPIO_Init(GPIOB, &GPIO_InitStructure);	
-
-	//PWRKEY的使能
-	GPIO_SetBits(GPIOB,GPIO_Pin_9);	
-
-	for(i = 0; i < 2; i++)
-	{
-		delay_ms(1000);	
-	}
-	//开机控制引脚释放
-	GPIO_ResetBits(GPIOB,GPIO_Pin_9);
-
-	for(i = 0; i < 2; i++)
-	{
-		delay_ms(1000);	
-	}
-
-}
-
-void YR4G_GPRS_Restart(void)
-{
-	u8 temp = 0;
-	//YR4G_GPRS_OFF();
-	for(temp = 0; temp < 30; temp++)
-	{
-		delay_ms(1000);
-	}
-	//YR4G_GPRS_ON();
-
-}
-
-void YR4G_Powerkey_Restart(void)
-{
-	u8 temp = 0;
-	BSP_Printf("Powerkey Restart\r\n");
-	YR4G_PWRKEY_OFF();
-	for(temp = 0; temp < 30; temp++)
-	{
-		delay_ms(1000);
-	}
-	YR4G_PWRKEY_ON();
-}
-
-void YR4G_Power_Restart(void)
-{
-	u8 temp = 0;
-	YR4G_PWRKEY_OFF();
-	YR4G_POWER_OFF();
-	
-	for(temp = 0; temp < 30; temp++)
-	{
-		delay_ms(1000);
-	}
-	YR4G_POWER_ON();
-	YR4G_PWRKEY_ON();
-
 }
 
 bool YR4G_RecoverSocket(void)
@@ -1081,31 +966,15 @@ bool YR4G_Link_Server_AT(void)
 	return ret;
 }
 
-bool YR4G_Link_Server_Powerkey(void)
-{
-	u8 retry = RETRY_AT;
-	bool ret = FALSE;	
-	while(retry != 0)
-	{
-		ret = YR4G_Link_Server_AT();
-		if(ret)
-			break;
-		YR4G_Powerkey_Restart();
-		retry--;
-	}
-
-	return ret;
-
-}
 bool YR4G_Link_Server(void)
 {
 	u8 retry = RETRY_AT;
 	bool ret = FALSE;
 	while(retry != 0)
 	{
-		if(ret = YR4G_Link_Server_Powerkey())
+		if(ret = YR4G_Link_Server_AT())
 			break;
-		YR4G_Power_Restart();
+		YR4G_ResetRestart();
 		retry--;
 	}
 	

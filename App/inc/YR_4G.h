@@ -173,19 +173,12 @@ bool SocketEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting);
 bool SocketSL(u8 rw, u8 sock, u8 sl, SockSetting *pSocketSetting);
 bool isConnected(u8 sock, SockSetting *pSocketSetting);
 bool SocketTO(u8 sock, SockSetting *pSocketSetting);
-	
-void YR4G_POWER_ON(void);
-void YR4G_POWER_OFF(void);
-void YR4G_PWRKEY_ON(void);
-void YR4G_PWRKEY_OFF(void);
 
-void YR4G_GPRS_Restart(void);
-void YR4G_Powerkey_Restart(void);
-void YR4G_Power_Restart(void);
+void YR4G_ResetON(void);
+void YR4G_ResetRestart(void);
 
 bool YR4G_Link_Server(void);
 bool YR4G_Link_Server_AT(void);
-bool YR4G_Link_Server_Powerkey(void);
 
 void SendLogin(void);
 void SendHeart(void);

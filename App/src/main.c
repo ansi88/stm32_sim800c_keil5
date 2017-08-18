@@ -104,8 +104,7 @@ int main(void)
 		BSP_Printf("Power[%d]: %d\n", i, Device_Power_Status(i));
 	}
 	
-	YR4G_POWER_ON();  
-	YR4G_PWRKEY_ON();
+	YR4G_ResetRestart();
 	BSP_Printf("YR4GC开机完成\r\n");
 	
 	while(!YR4G_Link_Server())
@@ -288,6 +287,7 @@ int main(void)
 
 Restart:
 		Reset_Device_Status();
+		YR4G_ResetRestart();
 		while(!YR4G_Link_Server())
 		{
 			BSP_Printf("INIT: YR Module not working\r\n");

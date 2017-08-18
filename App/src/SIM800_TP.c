@@ -21,9 +21,10 @@ const char  *port = "8089";
 const char delim=',';
 const char ending='#';
 
-char  *cell = "13910138465";
+char  *cell = "13900000000";
 
 char iccid[LENGTH_ICCID_BUF+1] = {0};
+u8 csq = 0;
 uint32_t  lastOutActivity=0;
 uint32_t  lastInActivity=0;
 t_DEV dev;
@@ -168,7 +169,8 @@ bool GetCSQ(void)
 		ret = SIM800_TP_Send_Cmd("AT+CSQ","+CSQ:",recv,200);
 		if(ret) 
 		{
-			BSP_Printf("Signal: %d\r\n",atoi(strstr(recv,"+CSQ:")+strlen("+CSQ:")+1));
+			csq = atoi(strstr(recv,"+CSQ:")+strlen("+CSQ:")+1);
+			BSP_Printf("Signal: %d\r\n", csq);
 			break;
 		}
 		delay_s(2);
@@ -224,7 +226,7 @@ bool SIM800_TP_GPRS_ON(void)
 {
 	bool ret = FALSE;
 	if(ret = Link_Server_AT(0, ipaddr, port))
-		dev.need_reset = ERR_NONE;
+		dev.need_login = LOGIN_MAX;
 	
 	return ret;
 }
@@ -731,6 +733,16 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 	p_left += LENGTH_ICCID_BUF;
 	*p_left++ = delim;
 
+	if(msg_str_id == MSG_STR_ID_LOGIN)
+	{
+		sprintf(p_left, "%02d", dev.need_login);
+		p_left += 2;
+		*p_left++ = delim;
+		sprintf(p_left, "%02d", csq);
+		p_left += 2;
+		*p_left++ = delim;		
+	}
+	
   	sprintf(msg->length,"%03d",strlen(msg_str)-sizeof(msg->header)-sizeof(msg->id)-sizeof(msg->length)+5);
 	msg->length[MSG_STR_LEN_OF_LENGTH] = delim;	
 	

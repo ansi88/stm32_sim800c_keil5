@@ -56,7 +56,6 @@ void Reset_Device_Status(void)
 	dev.hb_timer = 0;
 	dev.wait_reply = FALSE;
 	dev.reply_timer = 0;
-	dev.need_reset = 0;
 	dev.portClosed = 0;
 	dev.msg_seq = 0;
 }
@@ -95,6 +94,7 @@ int main(void)
 
 	rtc_init();	
 	Reset_Device_Status();
+	dev.need_login = LOGIN_POWERUP;	
 	Clear_Usart3();
 	Device_Init();
 	//Device_ON(DEVICE_01);
@@ -111,7 +111,6 @@ int main(void)
 	while(!SIM800_TP_Link_Server())
 	{
 		BSP_Printf("INIT: SIM Module not working\r\n");
-		dev.need_reset = ERR_INIT_MODULE;
 	}
 
 	BSP_Printf("SIM Connect to Network\r\n");
@@ -137,6 +136,7 @@ int main(void)
 				|| ((lastOutActivity>lastInActivity)&&((lastOutActivity-lastInActivity)>DISCONNECT_TIMEOUT)))
 			{
 				BSP_Printf("lastInActivity: %d, lastOutActivity%d\n", lastInActivity, lastOutActivity);
+				dev.need_login = LOGIN_SEND_RECV_TIMEOUT;
 				goto Restart;
 			}
 
@@ -174,6 +174,7 @@ int main(void)
 			{
 				if((strstr(recv,"CLOSED")!=NULL)||(strstr(recv,"DEACT")!=NULL))
 				{
+					dev.need_login = LOGIN_DISCONNECT;
 					goto Restart;
 				}
 				
@@ -291,20 +292,12 @@ int main(void)
 		}
 
 Restart:
-	#ifdef LOG_ENABLE	
-		usart1_init(115200);
-	#endif
-	
-		usart3_init(115200);
-
 		Reset_Device_Status();
-		Clear_Usart3();	
 
 		SIM800_TP_Power_Restart();	
 		while(!SIM800_TP_Link_Server())
 		{
 			BSP_Printf("INIT: SIM Module not working\r\n");
-			dev.need_reset = ERR_INIT_MODULE;
 		}
 		lastInActivity = lastOutActivity = RTC_GetCounter();
 		SendLogin();	

@@ -63,7 +63,7 @@ void Reset_Device_Status(void)
 int main(void)
 {
 	u8 i;
-	char recv[100];
+	char recv[300];
 	char *uart_data_left;
 	char *p, *p1;	
 	u16 length = 0; 
@@ -135,7 +135,7 @@ int main(void)
 			if(((lastInActivity>lastOutActivity)&&((lastInActivity-lastOutActivity)>DISCONNECT_TIMEOUT))
 				|| ((lastOutActivity>lastInActivity)&&((lastOutActivity-lastInActivity)>DISCONNECT_TIMEOUT)))
 			{
-				BSP_Printf("lastInActivity: %d, lastOutActivity%d\n", lastInActivity, lastOutActivity);
+				BSP_Printf("lastInActivity: %d, lastOutActivity: %d\n", lastInActivity, lastOutActivity);
 				dev.need_login = LOGIN_SEND_RECV_TIMEOUT;
 				goto Restart;
 			}
@@ -179,6 +179,7 @@ int main(void)
 				}
 				
 				uart_data_left = (char *)recv;
+				BSP_Printf("recv: %s\n", recv);
 				while((p=strstr(uart_data_left, MSG_STR_SERVER_HEADER))!=NULL)
 				{
 					if((p1=strstr((const char*)p,"#"))!=NULL)
@@ -284,6 +285,7 @@ int main(void)
 							}
 						}
 						uart_data_left = p1;
+						BSP_Printf("uart_data_left: %s\n", uart_data_left);
 					}
 					else
 						break;

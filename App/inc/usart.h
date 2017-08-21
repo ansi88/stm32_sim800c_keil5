@@ -3,7 +3,7 @@
 #include "stdio.h"	
 #include "sys.h" 
 
-//#define LOG_ENABLE
+#define LOG_ENABLE
 #ifdef LOG_ENABLE
 /* 这个宏仅用于调试阶段排错 */
 #define BSP_Printf		printf

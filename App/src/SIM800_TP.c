@@ -837,12 +837,12 @@ char *DumpQueue(char * recv)
 	char *p=recv;
 	if(CycQueueIsEmpty(q) == 0 )
 	{
-		BSP_Printf("Queue Len: %d\n", CycQueueLen);
+		BSP_Printf("Queue Len: %d\n", CycQueueLen(q));
 		while(CycQueueIsEmpty(q) == 0 ) // CycQueueIsEmpty() return true when queue is empty.
 		{
 			uint8_t ch = CycQueueOut(q);
 			if(ch == 0)
-				ch = '#';
+				continue;
 			recv[i++] = ch;	
 		}
 		recv[i]=0;

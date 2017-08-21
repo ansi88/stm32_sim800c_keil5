@@ -366,7 +366,7 @@ bool Link_Server_AT(u8 mode,const char* ipaddr,const char *port)
 		ret = SIM800_TP_Send_Cmd(cmd,"CONNECT",recv,15000);
 		if(ret)
 		{
-			if((strstr(recv,"CLOSED") != NULL)||(strstr(recv,"PDP DEACT") != NULL))
+			if((strstr(recv,"CLOSED") != NULL)||(strstr(recv,"PDP DEACT") != NULL)||(strstr(recv,"CONNECT FAIL") != NULL))
 			{
 				ret = SIM800_TP_Send_Cmd("AT+CIPCLOSE=1","CLOSE OK",recv,500);
 				ret = SIM800_TP_Send_Cmd("AT+CIPSHUT","SHUT OK",recv,500);

@@ -46,6 +46,7 @@ bool SIM800_TP_Send_Cmd(char *cmd,char *ack,char *recv,u16 waittime)
 			delay_ms(10);
 			if(DumpQueue(recv) != NULL)
 			{
+#if 0
 				// remove crlfl from head
 				if (strncmp (recv,"\r\n",2) == 0)
 				{
@@ -55,6 +56,7 @@ bool SIM800_TP_Send_Cmd(char *cmd,char *ack,char *recv,u16 waittime)
 						recv[i] = recv[i + 2];
 					}
 				}
+#endif				
 				if(strstr(recv, ack))
 				{
 					ret = TRUE;
@@ -77,7 +79,7 @@ bool SIM800_TP_Send_Cmd(char *cmd,char *ack,char *recv,u16 waittime)
 bool CheckModule(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -94,7 +96,7 @@ bool CheckModule(void)
 bool DisableEcho(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -111,7 +113,7 @@ bool DisableEcho(void)
 bool CheckNetwork(void)
 {
 	u8 retry = RETRY_COUNT*60;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -128,7 +130,7 @@ bool CheckNetwork(void)
 bool CheckSIM(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -145,7 +147,7 @@ bool CheckSIM(void)
 bool CheckOPS(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -162,7 +164,7 @@ bool CheckOPS(void)
 bool GetCSQ(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -191,7 +193,7 @@ bool isValidCCID(char ch)
 bool GetICCID(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	u8 i;
 	while(retry != 0)
@@ -234,7 +236,7 @@ bool SIM800_TP_GPRS_ON(void)
 bool SIM800_TP_GPRS_OFF(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -251,7 +253,7 @@ bool SIM800_TP_GPRS_OFF(void)
 bool AdhereGPRS(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -268,7 +270,7 @@ bool AdhereGPRS(void)
 bool SetGPRS(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -285,7 +287,7 @@ bool SetGPRS(void)
 bool DisplayIP(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -302,7 +304,7 @@ bool DisplayIP(void)
 bool ShutGPRS(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -319,7 +321,7 @@ bool ShutGPRS(void)
 bool SetCGClass(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -336,7 +338,7 @@ bool SetCGClass(void)
 bool SetCGDCONT(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -354,7 +356,7 @@ bool Link_Server_AT(u8 mode,const char* ipaddr,const char *port)
 {
 	u8 retry = RETRY_COUNT;
 	char cmd[100]={0};
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
 	
   	sprintf((char*)cmd,"AT+CIPSTART=\"%s\",\"%s\",\"%s\"",modetbl[mode],ipaddr,port);	
@@ -386,7 +388,7 @@ bool Link_Server_AT(u8 mode,const char* ipaddr,const char *port)
 bool SetCMGF(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -403,7 +405,7 @@ bool SetCMGF(void)
 bool SetCSMP(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -420,7 +422,7 @@ bool SetCSMP(void)
 bool SetCSCS(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -437,7 +439,7 @@ bool SetCSCS(void)
 bool SetCIPMode(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -454,7 +456,7 @@ bool SetCIPMode(void)
 bool SetCIPCCFG(void)
 {
 	u8 retry = RETRY_COUNT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{

@@ -204,12 +204,12 @@ bool GetICCID(void)
 			memset(iccid, 0, sizeof(iccid));
 			for(i=0; i<LENGTH_ICCID_BUF; i++)
 			{
-				if(!isValidCCID(recv[i]))
+				if(!isValidCCID(recv[i+ICCID_OFFSET]))
 				{
 					ret = FALSE;
 					break;
 				}
-				iccid[i]=recv[i];
+				iccid[i]=recv[i+ICCID_OFFSET];
 			}
 			if(i==LENGTH_ICCID_BUF)
 			{

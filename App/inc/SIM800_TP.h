@@ -3,6 +3,7 @@
 #include "sys.h"
 #include "device.h"
 
+#define ICCID_OFFSET   2
 #define LENGTH_ICCID_BUF 20
 extern char iccid[LENGTH_ICCID_BUF+1];
 

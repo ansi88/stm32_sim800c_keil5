@@ -56,7 +56,6 @@ void Reset_Device_Status(void)
 	dev.hb_timer = 0;
 	dev.wait_reply = FALSE;
 	dev.reply_timer = 0;
-	dev.need_reset = 0;
 	dev.portClosed = 0;
 	dev.msg_seq = 0;
 }
@@ -64,7 +63,7 @@ void Reset_Device_Status(void)
 int main(void)
 {
 	u8 i;
-	char recv[100];
+	char recv[300];
 	char *uart_data_left;
 	char *p, *p1;	
 	u16 length = 0; 
@@ -95,6 +94,7 @@ int main(void)
 
 	rtc_init();	
 	Reset_Device_Status();
+	dev.need_login = LOGIN_POWERUP;		
 	Clear_Usart3();
 	Device_Init();
 	//Device_ON(DEVICE_01);
@@ -110,7 +110,6 @@ int main(void)
 	while(!YR4G_Link_Server())
 	{
 		BSP_Printf("INIT: YR Module not working\r\n");
-		dev.need_reset = ERR_INIT_MODULE;
 	}
 
 	BSP_Printf("YR4GC Connect to Network\r\n");
@@ -131,7 +130,8 @@ int main(void)
 			if(((lastInActivity>lastOutActivity)&&((lastInActivity-lastOutActivity)>DISCONNECT_TIMEOUT))
 				|| ((lastOutActivity>lastInActivity)&&((lastOutActivity-lastInActivity)>DISCONNECT_TIMEOUT)))
 			{
-				BSP_Printf("lastInActivity: %d, lastOutActivity%d\n", lastInActivity, lastOutActivity);
+				BSP_Printf("lastInActivity: %d, lastOutActivity: %d\n", lastInActivity, lastOutActivity);
+				dev.need_login = LOGIN_SEND_RECV_TIMEOUT;				
 				goto Restart;
 			}
 
@@ -169,6 +169,7 @@ int main(void)
 			{
 				if((strstr(recv,"reset")!=NULL) || strstr(recv,"reboot")!=NULL)
 				{
+					dev.need_login = LOGIN_DISCONNECT;				
 					goto Restart;
 				}
 				
@@ -291,7 +292,6 @@ Restart:
 		while(!YR4G_Link_Server())
 		{
 			BSP_Printf("INIT: YR Module not working\r\n");
-			dev.need_reset = ERR_INIT_MODULE;
 		}
 		lastInActivity = lastOutActivity = RTC_GetCounter();
 		SendLogin();	

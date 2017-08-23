@@ -107,6 +107,17 @@ char *EchoStatus[]={"ON", "OFF"};
 
 enum
 {
+	NET_NONETWORK=0,
+	NET_GSM,
+	NET_WCDMA,
+	NET_TDSCDMA,
+	NET_LTE,
+};
+
+char *Network[]={"No Network", "GSM/GPRS", "WCDMA", "TD-SCDMA", "LTE"};
+
+enum
+{
 	WKMOD_NET=0,
 	WKMOD_HTTPD,
 };
@@ -202,6 +213,7 @@ char version[LENGTH_VERSION_BUF] = {0};
 char wkmod[LENGTH_WKMOD_BUF] = {0};
 char password[LENGTH_PASSWORD_BUF] = "usr.cn";
 char sysinfo[LENGTH_SYSINFO_BUF] = {0};
+u8 network = 0;
 char sn[LENGTH_SN_BUF] = {0};
 char iccid[LENGTH_ICCID_BUF] = {0};
 char imei[LENGTH_IMEI_BUF] = {0};
@@ -338,7 +350,7 @@ bool CheckModule(void)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT;
-	char recv[50];		
+	char recv[MAXSIZE+1];		
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -357,7 +369,7 @@ bool GetVersion(void)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_VER;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
 	while(retry != 0)
 	{
@@ -381,23 +393,29 @@ bool GetSysinfo(void)
 {
 	u8 retry = RETRY_AT*60;
 	u8 id=AT_SYSINFO;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
-	for(u8 i=0;i<40;i++)
-		delay_ms(1500);
+	u8 i=0;
+	for(i=0;i<30;i++)
+		delay_s(2);
 	
 	while(retry != 0)
 	{
 		ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
 		if(ret) 
 		{
-			if(strstr(recv, "No Network")!=NULL)
+			for(i=NET_NONETWORK; i<=NET_LTE; i++)
+				if(strstr(recv, Network[i])!=NULL)
+					break;
+				
+			if((i==NET_NONETWORK) || (i>NET_LTE))
 				ret = FALSE;
 			else
 			{
 				memset(sysinfo, 0, sizeof(sysinfo));
 				trimStr(sysinfo, recv, id);
 				BSP_Printf("SysInfo: %s\n", sysinfo);
+				network =  i;
 				break;
 			}
 		}
@@ -413,7 +431,7 @@ bool GetPassword(void)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_CMDPW;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
 
 	while(retry != 0)
@@ -437,7 +455,7 @@ bool GetResetTime(void)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_RSTIM;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
 
 	while(retry != 0)
@@ -460,7 +478,7 @@ bool GetCSQ(void)
 {
 	u8 retry = RETRY_AT*10;
 	u8 id=AT_CSQ;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
 
 	while(retry != 0)
@@ -471,7 +489,7 @@ bool GetCSQ(void)
 			memset(csq, 0, sizeof(csq));
 			trimStr(csq, recv, id);
 			BSP_Printf("CSQ: %s\n", csq);
-			if(atoi(csq)==99)
+			if(atoi(csq)>=99)
 				ret = FALSE;
 			else
 				break;
@@ -487,7 +505,7 @@ bool GetSN(void)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SN;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
 
 	while(retry != 0)
@@ -511,7 +529,7 @@ bool GetICCID(void)
 {
 	u8 retry = RETRY_AT*3;
 	u8 id=AT_ICCID;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
 
 	while(retry != 0)
@@ -540,7 +558,7 @@ bool GetIMEI(void)
 {
 	u8 retry = RETRY_AT*3;
 	u8 id=AT_IMEI;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
 
 	while(retry != 0)
@@ -570,7 +588,7 @@ bool SaveSetting(void)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_CFGTF;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
 
 	while(retry != 0)
@@ -589,9 +607,9 @@ bool SocketParam(u8 rw, u8 sock, u8 *protocol, u8 *addr, u8 *port, SockSetting *
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SOCK_PARAM;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
-	char cmd[10], ack[10];
+	char cmd[20], ack[20];
 	char *p;
 
 	if(rw==READ)
@@ -636,9 +654,9 @@ bool SocketEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SOCK_ENABLE;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
-	char cmd[10], ack[10];
+	char cmd[20], ack[20];
 
 	if(rw==READ)
 	{
@@ -681,9 +699,9 @@ bool SocketSL(u8 rw, u8 sock, u8 sl, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SOCK_SL;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
-	char cmd[10], ack[10];
+	char cmd[20], ack[20];
 	
 	if(rw==READ)
 	{
@@ -717,9 +735,9 @@ bool isConnected(u8 sock, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SOCK_LK;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
-	char cmd[10], ack[10];
+	char cmd[20], ack[20];
 
 	sprintf(cmd, "+SOCK%c%s", SocketLabel[sock], atpair[id].cmd);
 	sprintf(ack, "+SOCK%c%s:", SocketLabel[sock],atpair[id].ack);
@@ -746,9 +764,9 @@ bool SocketTO(u8 sock, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SOCK_TO;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
-	char cmd[10], ack[10];
+	char cmd[20], ack[20];
 
 	sprintf(cmd, "+SOCK%c%s", SocketLabel[sock], atpair[id].cmd);
 	sprintf(ack, "+SOCK%c%s:", SocketLabel[sock],atpair[id].ack);
@@ -773,7 +791,7 @@ bool RegEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_REGEN;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
 
 	if(rw==READ)
@@ -814,7 +832,7 @@ bool HeartEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_HEARTEN;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
 
 	if(rw==READ)
@@ -1045,7 +1063,17 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 	strncpy(p_left, iccid, LENGTH_ICCID_BUF);
 	p_left += strlen(iccid);
 	*p_left++ = delim;
-	
+
+	if(msg_str_id == MSG_STR_ID_LOGIN)
+	{
+		sprintf(p_left, "%02d", dev.need_login);
+		p_left += 2;
+		*p_left++ = delim;
+		sprintf(p_left, "%03d", csq+network*100);
+		p_left += 2;
+		*p_left++ = delim;		
+	}
+
   	sprintf(msg->length,"%03d",strlen(msg_str)-sizeof(msg->header)-sizeof(msg->id)-sizeof(msg->length)+5);
 	msg->length[MSG_STR_LEN_OF_LENGTH] = delim;	
 	

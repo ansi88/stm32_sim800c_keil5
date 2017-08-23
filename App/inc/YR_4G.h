@@ -58,7 +58,7 @@ typedef struct
 	u8 hb_timer;
 	bool wait_reply;	
 	u8 reply_timer;	
-	u8 need_reset;
+	u8 need_login;
 	u8 portClosed;
 	u8 msg_seq;
 	u8 msg_seq_s;
@@ -103,14 +103,11 @@ enum
 
 enum
 {
-	ERR_NONE = 0,
+	LOGIN_POWERUP = 0,
+	LOGIN_SEND_RECV_TIMEOUT,
+	LOGIN_DISCONNECT,
 
-	ERR_INIT_MODULE,
-	ERR_RETRY_TOO_MANY_TIMES,	
-
-	ERR_DISCONNECT,	
-
-	ERR_SEND_CMD,	
+	LOGIN_MAX,
 };
 
 enum

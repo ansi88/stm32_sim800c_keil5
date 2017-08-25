@@ -219,6 +219,7 @@ char iccid[LENGTH_ICCID_BUF] = {0};
 char imei[LENGTH_IMEI_BUF] = {0};
 u16 resetTime=0;
 char csq[LENGTH_CSQ_BUF] = {0};
+u16 signal=0;
 SockSetting socketSetting[SOCK_MAX]={
 	{TRUE, FALSE, 0, "LONG", "TCP", "116.62.187.167", "8089", FALSE, NULL, {0}, NULL, FALSE, {0}, NULL, 0},
 	{FALSE, FALSE, 0, "LONG", "TCP", "test.usr.cn", "2317", FALSE, NULL, {0}, NULL, FALSE, {0}, NULL, 0},
@@ -414,7 +415,7 @@ bool GetSysinfo(void)
 			{
 				memset(sysinfo, 0, sizeof(sysinfo));
 				trimStr(sysinfo, recv, id);
-				BSP_Printf("SysInfo: %s\n", sysinfo);
+				BSP_Printf("SysInfo[%d]: %s\n", i, sysinfo);
 				network =  i;
 				break;
 			}
@@ -489,10 +490,15 @@ bool GetCSQ(void)
 			memset(csq, 0, sizeof(csq));
 			trimStr(csq, recv, id);
 			BSP_Printf("CSQ: %s\n", csq);
-			if(atoi(csq)>=99)
+				
+			if((atoi(csq)-((network > NET_GSM)?100:0))>=99)
 				ret = FALSE;
 			else
+			{
+				signal = atoi(csq)-((network > NET_GSM)?100:0)+network*100;
+				BSP_Printf("signal: %d\n", signal);
 				break;
+			}
 		}
 		delay_ms(1500);
 		retry--;
@@ -609,7 +615,7 @@ bool SocketParam(u8 rw, u8 sock, u8 *protocol, u8 *addr, u8 *port, SockSetting *
 	u8 id=AT_SOCK_PARAM;
 	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
-	char cmd[20], ack[20];
+	char cmd[10], ack[10];
 	char *p;
 
 	if(rw==READ)
@@ -656,7 +662,7 @@ bool SocketEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting)
 	u8 id=AT_SOCK_ENABLE;
 	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
-	char cmd[20], ack[20];
+	char cmd[10], ack[10];
 
 	if(rw==READ)
 	{
@@ -701,7 +707,7 @@ bool SocketSL(u8 rw, u8 sock, u8 sl, SockSetting *pSocketSetting)
 	u8 id=AT_SOCK_SL;
 	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
-	char cmd[20], ack[20];
+	char cmd[10], ack[10];
 	
 	if(rw==READ)
 	{
@@ -735,9 +741,9 @@ bool isConnected(u8 sock, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SOCK_LK;
-	char recv[MAXSIZE+1];	
+	char recv[50];	
 	bool ret = FALSE;
-	char cmd[20], ack[20];
+	char cmd[10], ack[10];
 
 	sprintf(cmd, "+SOCK%c%s", SocketLabel[sock], atpair[id].cmd);
 	sprintf(ack, "+SOCK%c%s:", SocketLabel[sock],atpair[id].ack);
@@ -764,9 +770,9 @@ bool SocketTO(u8 sock, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SOCK_TO;
-	char recv[MAXSIZE+1];	
+	char recv[50];	
 	bool ret = FALSE;
-	char cmd[20], ack[20];
+	char cmd[10], ack[10];
 
 	sprintf(cmd, "+SOCK%c%s", SocketLabel[sock], atpair[id].cmd);
 	sprintf(ack, "+SOCK%c%s:", SocketLabel[sock],atpair[id].ack);
@@ -791,7 +797,7 @@ bool RegEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_REGEN;
-	char recv[MAXSIZE+1];	
+	char recv[50];	
 	bool ret = FALSE;
 
 	if(rw==READ)
@@ -799,6 +805,7 @@ bool RegEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting)
 		while(retry != 0)
 		{
 			ret = YR4G_Send_Cmd(atpair[id].cmd,atpair[id].ack,recv,100);
+			
 			if(ret)
 			{
 				pSocketSetting->isRegEn = (strstr(recv, RegEN[REG_EN])!=NULL)?TRUE:FALSE;
@@ -832,7 +839,7 @@ bool HeartEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_HEARTEN;
-	char recv[MAXSIZE+1];	
+	char recv[50];	
 	bool ret = FALSE;
 
 	if(rw==READ)
@@ -969,7 +976,7 @@ bool YR4G_Link_Server_AT(void)
 											//for(u8 j=0; j<MAX_TRY; j++)
 											for(;;)
 											{
-												delay_ms(1500);
+												delay_s(2);
 												isConnected(i, &tSockSetting);
 												if(tSockSetting.isConnected)
 												{
@@ -1069,8 +1076,8 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 		sprintf(p_left, "%02d", dev.need_login);
 		p_left += 2;
 		*p_left++ = delim;
-		sprintf(p_left, "%03d", csq+network*100);
-		p_left += 2;
+		sprintf(p_left, "%03d", signal);
+		p_left += 3;
 		*p_left++ = delim;		
 	}
 
@@ -1096,7 +1103,7 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 //发送登陆信息给服务器
 void SendLogin(void)
 {
-	char Loginbuf[100]={0};
+	char Loginbuf[150]={0};
 	if(GetUploadStr(MSG_STR_ID_LOGIN, Loginbuf) != 0)
 	{
 		lastOutActivity = RTC_GetCounter();
@@ -1109,7 +1116,7 @@ void SendLogin(void)
 //发送心跳包给服务器
 void SendHeart(void)
 {
-	char HBbuf[100]={0};
+	char HBbuf[150]={0};
 	if(GetUploadStr(MSG_STR_ID_HB, HBbuf)!=0)
 	{
 		lastOutActivity = RTC_GetCounter();  /* Compute  hours */		
@@ -1121,7 +1128,7 @@ void SendHeart(void)
 //发送接收业务指令完成回文给服务器
 void SendStartAck(void)
 {
-	char StartAck[100]={0};
+	char StartAck[150]={0};
 	if(GetUploadStr(MSG_STR_ID_OPEN, StartAck)!=0)
 	{
 		lastOutActivity = RTC_GetCounter();	
@@ -1133,7 +1140,7 @@ void SendStartAck(void)
 //发送业务执行完成指令给服务器
 void SendFinish(void)
 {
-	char FinishBuf[100]={0};
+	char FinishBuf[150]={0};
 	if(GetUploadStr(MSG_STR_ID_CLOSE, FinishBuf)!=0)
 	{
 		lastOutActivity = RTC_GetCounter();	

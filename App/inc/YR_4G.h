@@ -30,9 +30,6 @@ extern char csq[LENGTH_CSQ_BUF];
 extern uint32_t  lastOutActivity;
 extern uint32_t  lastInActivity;
 
-#define LENGTH_ATCMD_ACK 50
-#define LENGTH_DEVICE_OPEN_CMD        50
-#define LENGTH_USART_DATA        100
 #define LENGTH_SMS_BACKUP        100
 
 /*********WJ*********/

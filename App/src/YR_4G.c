@@ -489,16 +489,11 @@ bool GetCSQ(void)
 		{
 			memset(csq, 0, sizeof(csq));
 			trimStr(csq, recv, id);
-			BSP_Printf("CSQ: %s\n", csq);
-				
-			if((atoi(csq)-((network > NET_GSM)?100:0))>=99)
-				ret = FALSE;
-			else
-			{
-				signal = atoi(csq)-((network > NET_GSM)?100:0)+network*100;
-				BSP_Printf("signal: %d\n", signal);
-				break;
-			}
+			BSP_Printf("CSQ: %s %d\n", csq);
+			
+			signal = atoi(csq)+network*1000;
+			BSP_Printf("signal: %d\n", signal);
+			break;
 		}
 		delay_ms(1500);
 		retry--;
@@ -741,7 +736,7 @@ bool isConnected(u8 sock, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SOCK_LK;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
 	char cmd[10], ack[10];
 
@@ -770,7 +765,7 @@ bool SocketTO(u8 sock, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_SOCK_TO;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
 	char cmd[10], ack[10];
 
@@ -797,7 +792,7 @@ bool RegEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_REGEN;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
 
 	if(rw==READ)
@@ -839,7 +834,7 @@ bool HeartEnable(u8 rw, u8 sock, bool enable, SockSetting *pSocketSetting)
 {
 	u8 retry = RETRY_AT;
 	u8 id=AT_HEARTEN;
-	char recv[50];	
+	char recv[MAXSIZE+1];	
 	bool ret = FALSE;
 
 	if(rw==READ)
@@ -1076,8 +1071,8 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 		sprintf(p_left, "%02d", dev.need_login);
 		p_left += 2;
 		*p_left++ = delim;
-		sprintf(p_left, "%03d", signal);
-		p_left += 3;
+		sprintf(p_left, "%04d", signal);
+		p_left += 4;
 		*p_left++ = delim;		
 	}
 

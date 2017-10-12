@@ -2,7 +2,10 @@
 #include "timer.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "usart.h"
+#include "usart2.h"
+#include "delay.h"
 
 GPIO_TypeDef* GPIO_PORT[DEVICEn] = { 
 	DEVICE1_GPIO_PORT, 
@@ -19,6 +22,23 @@ const u16 GPIO_PIN[DEVICEn] = {
 };
 
 Device_Info g_device_status[DEVICEn];
+
+typedef struct
+{
+	u16 header;
+	u8 len;
+	u8 data[1];
+} t_Msg;
+
+typedef struct
+{
+	u16 header;
+	u8 status;
+	u8 crc;
+} t_Rpy;
+
+#define MAGIC_B1          0xAA
+#define MAGIC_B2          0x55
 
 void Device_Init(void)
 {
@@ -136,3 +156,37 @@ bool Device_Check_Status(void)
 		
 }
 
+u8 CheckSum(char* pBuf, u16 len);
+//waittime:等待时间(单位:10ms)
+bool Device_SendCmd(u8 *cmd, u8 len, u8 *recv, u16 waittime)
+{
+	bool ret = FALSE; 
+	t_Msg *msg=(t_Msg *)malloc(sizeof(t_Msg)+len);  //last byte for crc
+	char *p = (char *)USART2_RX_BUF;
+	char *end = NULL;		
+	msg->header = 0x55AA;
+	msg->len = len+1;
+	memcpy(msg->data, cmd, len);
+	msg->data[len] = CheckSum((char *)msg, sizeof(t_Msg)+len-1);
+
+	Clear_Usart2();
+	u2_msg((u8 *)msg, sizeof(t_Msg)+len);
+	
+	while(waittime!=0)	//等待倒计时
+	{ 
+		delay_ms(20);
+		if((USART2_RX_STA&(1<<15)) != 0)
+		{
+			end = (USART2_RX_STA & 0x7FFF)+p;
+			if(((p = strchr(p, MAGIC_B1)) != NULL) && (end-p>=sizeof(t_Rpy)))
+			{
+				ret = TRUE;
+				break;
+			}
+			Clear_Usart2();
+		}
+		waittime--;	
+	}
+
+	return ret;
+} 

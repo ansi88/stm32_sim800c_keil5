@@ -2,6 +2,7 @@
 #include "string.h"  
 #include "stdio.h"	
 #include "usart.h" 
+#include "usart2.h"
 #include "usart3.h" 
 #include "timer.h"
 #include "delay.h"
@@ -489,7 +490,7 @@ bool GetCSQ(void)
 		{
 			memset(csq, 0, sizeof(csq));
 			trimStr(csq, recv, id);
-			BSP_Printf("CSQ: %s %d\n", csq);
+			BSP_Printf("CSQ: %s\n", csq);
 			
 			signal = atoi(csq)+network*1000;
 			BSP_Printf("signal: %d\n", signal);
@@ -1160,4 +1161,3 @@ u8 CheckSum(char* pBuf, u16 len)
 	
 	return Sum;
 }
-

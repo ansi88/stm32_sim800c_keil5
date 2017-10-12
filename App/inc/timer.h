@@ -17,6 +17,7 @@
 #define TIMEVAL_MAX       (23*3600+59*60+59)
 #define DISCONNECT_TIMEOUT     (60*5)
 
+void TIM5_Int_Init(u16 arr,u16 psc);
 void TIM6_Int_Init(u16 arr,u16 psc);
 void TIM7_Int_Init(u16 arr,u16 psc);
 

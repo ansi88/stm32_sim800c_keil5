@@ -1,5 +1,6 @@
 #include "timer.h"
 #include "usart.h"
+#include "usart2.h"
 #include "usart3.h"
 #include "string.h"  
 #include "stdlib.h"  
@@ -9,6 +10,25 @@
 #include "rtc.h"
 
 extern void Reset_Device_Status(u8 status);
+
+void TIM5_IRQHandler(void)
+{ 	
+	if (TIM_GetITStatus(TIM5, TIM_IT_Update) != RESET)
+	{	 		
+		TIM_ClearITPendingBit(TIM5, TIM_IT_Update);  //清除TIM5更新中断标志    
+		USART2_RX_STA|=1<<15;	//标记接收完成
+		TIM_Cmd(TIM5, DISABLE);  //关闭TIM5
+
+		USART2_RX_BUF[USART2_RX_STA&0X7FFF]=0;	//添加结束符 
+		
+		//BSP_Printf("USART BUF:%s\r\n",USART2_RX_BUF);
+		for(u8 i=0; i<(USART2_RX_STA&0x7FFF); i++)
+			BSP_Printf("0x%02x ",USART2_RX_BUF[i]);
+		BSP_Printf("\n");
+		//Clear_Usart2();
+	}
+
+}
 
 //定时器6中断服务程序		    
 void TIM6_IRQHandler(void)
@@ -103,6 +123,32 @@ void TIM7_IRQHandler(void)
 		Clear_Usart3();
 	}
 
+}
+
+void TIM5_Int_Init(u16 arr,u16 psc)
+{	
+	NVIC_InitTypeDef NVIC_InitStructure;
+	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5, ENABLE);//TIM5时钟使能    
+	
+	//定时器TIM5初始化
+	TIM_TimeBaseStructure.TIM_Period = arr;                     //设置在下一个更新事件装入活动的自动重装载寄存器周期的值	
+	TIM_TimeBaseStructure.TIM_Prescaler =psc;                   //设置用来作为TIMx时钟频率除数的预分频值
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;     //设置时钟分割:TDTS = Tck_tim
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up; //TIM向上计数模式
+	TIM_TimeBaseInit(TIM5, &TIM_TimeBaseStructure);             //根据指定的参数初始化TIMx的时间基数单位
+ 
+	TIM_ITConfig(TIM5,TIM_IT_Update,ENABLE );                   //使能指定的TIM5中断,允许更新中断
+	
+	TIM_Cmd(TIM5,ENABLE);//开启定时器5
+	
+	NVIC_InitStructure.NVIC_IRQChannel = TIM5_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2 ;	//抢占优先级0
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;		    	//子优先级2
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			      	//IRQ通道使能
+	NVIC_Init(&NVIC_InitStructure);	//根据指定的参数初始化VIC寄存器
+	
 }
 
 //通用定时器6中断初始化

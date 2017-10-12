@@ -21,6 +21,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32F10x.h"
 #include "usart.h"
+#include "usart2.h"
 #include "usart3.h"
 #include "delay.h"
 #include <stdio.h>
@@ -89,7 +90,8 @@ int main(void)
 	//#define EN_USART1_RX 			   0		//使能（1）/禁止（0）串口1接收
 	usart1_init(115200);                            //串口1,Log
 #endif
-	
+
+	usart2_init(9600);                            //串口2,对接外设
 	usart3_init(115200);                            //串口3,对接YR4G
 
 	rtc_init();	
@@ -103,7 +105,16 @@ int main(void)
 	{
 		BSP_Printf("Power[%d]: %d\n", i, Device_Power_Status(i));
 	}
-	
+
+#if 0  //for usart2 test
+	u8 cmd[2]={0x12, 0x34};
+	while(!Device_SendCmd(cmd, sizeof(cmd), recv, 1000));
+	BSP_Printf("uart2 test phase 1 finished\r\n");
+	cmd[0]=0x22;
+	while(!Device_SendCmd(cmd, sizeof(cmd), recv, 1000));
+	BSP_Printf("uart2 test finished\r\n");
+#endif
+
 	YR4G_ResetRestart();
 	BSP_Printf("YR4GC开机完成\r\n");
 	

@@ -113,7 +113,7 @@ void u3_printf(char* fmt,...)
 	vsprintf((char*)USART3_TX_BUF,fmt,ap);
 	va_end(ap);
 	i=strlen((const char*)USART3_TX_BUF);		//此次发送数据的长度
-	BSP_Printf("S: %s\r\n", USART3_TX_BUF);
+	BSP_Printf("S3: %s\r\n", USART3_TX_BUF);
 	for(j=0;j<i;j++)							//循环发送数据
 	{
 	  while(USART_GetFlagStatus(USART3,USART_FLAG_TC)==RESET); //循环发送,直到发送完毕   

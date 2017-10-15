@@ -34,6 +34,7 @@ void TIM5_IRQHandler(void)
 void TIM6_IRQHandler(void)
 {
 	u8 index;
+	//BSP_Printf("dev.hb_timer %d\n", dev.hb_timer);	
 	if(TIM_GetITStatus(TIM6, TIM_IT_Update) != RESET)					  //是更新中断
 	{	
 		TIM_ClearITPendingBit(TIM6, TIM_IT_Update);  					//清除TIM6更新中断标志

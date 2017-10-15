@@ -91,7 +91,7 @@ int main(void)
 	usart1_init(115200);                            //串口1,Log
 #endif
 
-	usart2_init(9600);                            //串口2,对接外设
+	//usart2_init(9600);                            //串口2,对接外设
 	usart3_init(115200);                            //串口3,对接YR4G
 
 	rtc_init();	
@@ -170,8 +170,12 @@ int main(void)
 					dev.hb_ready = FALSE;
 				}
 
+				//case 1: finish msg not sent yet
+				//case 2: finish msg already sent but timeout
 				if(((dev.portClosed != 0) && !dev.wait_reply) ||(dev.wait_reply && (dev.reply_timer >= REPLY_1_MIN)))
 				{
+					//if(isAnyDevBusy())
+					//	dev.wait_busy = TRUE;
 					SendFinish();
 				}
 			}
@@ -233,6 +237,7 @@ int main(void)
 									char *interfaces, *periods;
 									bool interface_on[DEVICEn]={FALSE};
 									int period_on[DEVICEn]={0};
+									bool alreadySet = FALSE;
 									//根据当前设备状态进行开启(GPIO)，已经开了的就不处理了
 									//开启设备并本地计时
 									interfaces = strtok(p+sizeof(MsgSrv), ",");
@@ -245,29 +250,46 @@ int main(void)
 										interface_on[i]=(interfaces[i]=='1')?TRUE:FALSE;
 										if((interface_on[i]) && (g_device_status[i].seq == seq))
 										{
-											SendStartAck();
-											break;
+											alreadySet = TRUE;
 										}
 									}
-										
+
+									if(alreadySet)
+									{
+										SendStartAck();
+										break;		
+									}
+									
 									periods = strtok(NULL, ",");
 									if(periods)
 									{						
 										//BSP_Printf("periods: %s\n", periods);	
 									}
+#if TEST
+									sscanf(periods, "%02d,", &period_on[DEVICE_01]);
+#else
 									sscanf(periods, "%02d%02d%02d%02d,", &period_on[DEVICE_01], 
 										&period_on[DEVICE_02], &period_on[DEVICE_03], &period_on[DEVICE_04]);
-
+#endif
 									for(i=DEVICE_01; i<DEVICEn; i++)
 									{
-										if(interface_on[i] && (g_device_status[i].power == OFF))
-										{
-											g_device_status[i].total = period_on[i] * NUMBER_TIMER_1_MINUTE;
-											g_device_status[i].passed = 0;
-											g_device_status[i].power = ON;		
-											g_device_status[i].seq = seq;											
-											Device_ON(i);	
-										}			
+										if(interface_on[i]){
+#if TEST										
+											if(!isDevWorking(i) || isDevBusy(i))
+											{						
+												BSP_Printf("Wrong Status\n");	
+											}												
+											else
+#endif												
+												if(g_device_status[i].power == OFF)
+												{
+													g_device_status[i].total = period_on[i] * NUMBER_TIMER_1_MINUTE;
+													g_device_status[i].passed = 0;
+													g_device_status[i].power = ON;		
+													g_device_status[i].seq = seq;											
+													Device_ON(i);	
+												}
+										}
 									}
 
 									SendStartAck();

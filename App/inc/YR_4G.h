@@ -44,7 +44,11 @@ extern uint32_t  lastInActivity;
 #define MSG_STR_LEN_OF_SEQ                               3
 #define MSG_STR_LEN_OF_DUP                               2
 #define MSG_STR_LEN_OF_DEVICE                          3
+#if TEST
+#define MSG_STR_LEN_OF_PORTS                           (DEVICEn*GPIOS)
+#else
 #define MSG_STR_LEN_OF_PORTS                           DEVICEn
+#endif
 #define MSG_STR_LEN_OF_PORTS_PERIOD            (DEVICEn*4)
 #define MSG_STR_LEN_OF_PORTS_SEQ            (DEVICEn*MSG_STR_LEN_OF_SEQ)
 

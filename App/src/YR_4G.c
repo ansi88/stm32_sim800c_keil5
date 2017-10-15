@@ -235,7 +235,7 @@ t_DEV dev;
 extern void Reset_Device_Status(u8 status);
 
 const char *msg_id[MSG_STR_ID_MAX]={"00", "01", "02", "03"};
-const char *msg_device="000";
+const char *msg_device="100";
 
 #define LINKA_PIN                         GPIO_Pin_11
 #define LINKA_GPIO_PORT                   GPIOF
@@ -1008,7 +1008,6 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 	MsgDev *msg=(MsgDev*)msg_str;
 	char *p_left=msg_str+sizeof(MsgDev);
 	u8 Result_Validation = 0;
-	u8 i;
 
 	if(msg_str == NULL)
 		return 0;
@@ -1046,12 +1045,16 @@ u8 GetUploadStr(u8 msg_str_id, char *msg_str)
 	strncpy(msg->device, msg_device, MSG_STR_LEN_OF_DEVICE);
 	msg->device[MSG_STR_LEN_OF_DEVICE] = delim;
 
-	for(i = 0; i < MSG_STR_LEN_OF_PORTS; i++)
+#if TEST
+	Device_GPIO_Status(msg->ports);
+#else
+	for(u8 i = 0; i < MSG_STR_LEN_OF_PORTS; i++)
 	{
 		msg->ports[i] = (ON==Device_Power_Status(i))?'1':'0';		
-	}	
+	}
+#endif
 	msg->ports[MSG_STR_LEN_OF_PORTS] = delim;
-
+	
 	Device_Timer_Status(msg->period);
 	msg->period[MSG_STR_LEN_OF_PORTS_PERIOD] = delim;
 

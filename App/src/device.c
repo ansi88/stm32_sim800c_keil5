@@ -7,6 +7,18 @@
 #include "usart2.h"
 #include "delay.h"
 
+#if TEST
+
+GPIO_TypeDef* GPIO_PORT[DEVICEn][GPIOS] = { 
+	{DEVICE_GPIO_PORT, DEVICE_BUSY_GPIO_PORT, DEVICE_STATUS_GPIO_PORT},
+};
+
+const u16 GPIO_PIN[DEVICEn][GPIOS] = {
+	{DEVICE_PIN, DEVICE_BUSY_PIN, DEVICE_STATUS_PIN},
+};
+
+#else
+
 GPIO_TypeDef* GPIO_PORT[DEVICEn] = { 
 	DEVICE1_GPIO_PORT, 
 	DEVICE2_GPIO_PORT, 
@@ -20,6 +32,7 @@ const u16 GPIO_PIN[DEVICEn] = {
 	DEVICE3_PIN,
 	DEVICE4_PIN
 };
+#endif
 
 Device_Info g_device_status[DEVICEn];
 
@@ -46,9 +59,18 @@ void Device_Init(void)
 	GPIO_InitTypeDef  GPIO_InitStructure;
 #if TEST 	
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOF, ENABLE);	 
+
+	GPIO_InitStructure.GPIO_Pin = DEVICE_PIN;				 
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 		
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;		 
+	GPIO_Init(DEVICE_GPIO_PORT, &GPIO_InitStructure);	
+	Device_OFF(DEVICE_01);
+
+	GPIO_InitStructure.GPIO_Pin = DEVICE_BUSY_PIN | DEVICE_STATUS_PIN;	
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING; 
+	GPIO_Init(DEVICE_BUSY_GPIO_PORT, &GPIO_InitStructure);
 #else
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);	
-#endif
 
 	GPIO_InitStructure.GPIO_Pin = DEVICE1_PIN;				 
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 		
@@ -71,6 +93,7 @@ void Device_Init(void)
 	GPIO_Init(DEVICE4_GPIO_PORT, &GPIO_InitStructure);					
 	//GPIO_ResetBits(DEVICE4_GPIO_PORT,DEVICE4_PIN);
 	Device_OFF(DEVICE_04);
+#endif
 
 	memset(g_device_status, 0, sizeof(Device_Info)*DEVICEn);
 	for(u8 i=0; i<DEVICEn; i++)
@@ -81,7 +104,7 @@ void Device_Init(void)
 void Device_OFF(u8 Device)
 {
 #if TEST
-	GPIO_SetBits(GPIO_PORT[Device], GPIO_PIN[Device]);	
+	GPIO_ResetBits(GPIO_PORT[Device][GPIO_ENABLE], GPIO_PIN[Device][GPIO_ENABLE]);	
 #else
 	GPIO_ResetBits(GPIO_PORT[Device], GPIO_PIN[Device]);						
 #endif
@@ -90,7 +113,7 @@ void Device_OFF(u8 Device)
 void Device_ON(u8 Device)
 {
 #if TEST
-	GPIO_ResetBits(GPIO_PORT[Device], GPIO_PIN[Device]);	
+	GPIO_SetBits(GPIO_PORT[Device][GPIO_ENABLE], GPIO_PIN[Device][GPIO_ENABLE]);	
 #else
 	GPIO_SetBits(GPIO_PORT[Device], GPIO_PIN[Device]);						
 #endif
@@ -112,20 +135,18 @@ Device_Power Device_Power_Status(u8 Device)
 	if(Device >= DEVICEn)
 		return ret;
 	
-	if ((GPIO_PORT[Device]->ODR & GPIO_PIN[Device]) != 0)
-	{
 #if TEST
-		ret = OFF;
-#else
+	if ((GPIO_PORT[Device][GPIO_ENABLE]->ODR & GPIO_PIN[Device][GPIO_ENABLE]) != 0)
 		ret = ON;
-#endif
-	}
 	else
-#if TEST		
-		ret = ON;
+		ret = OFF;
 #else
+	if ((GPIO_PORT[Device]->ODR & GPIO_PIN[Device]) != 0)
+		ret = ON;
+	else
 		ret = OFF;
 #endif
+
 	return ret;
 
 }
@@ -145,15 +166,43 @@ void Device_Timer_Status(char *buf)
 	//BSP_Printf("Device Status: %s\n", p);
 }
 
-bool Device_Check_Status(void)
+//GPIO High: IDLE; Low: BUSY
+bool isDevBusy(u8 Device)
+{
+	return (GPIO_ReadOutputDataBit(GPIO_PORT[Device][GPIO_BUSY], GPIO_PIN[Device][GPIO_BUSY])==1?FALSE:TRUE);	
+	//return FALSE;
+}
+
+//GPIO High: IDLE; Low: BUSY
+bool isAnyDevBusy(void)
+{
+	bool busy = FALSE;
+	for(u8 i=DEVICE_01; i<DEVICEn; i++)
+		if(isDevBusy(i))
+		{
+			busy = TRUE;
+			break;
+		}
+	return busy;
+}
+
+//GPIO High: ERROR; Low: WORKING
+bool isDevWorking(u8 Device)
+{
+	return (GPIO_ReadOutputDataBit(GPIO_PORT[Device][GPIO_STATUS], GPIO_PIN[Device][GPIO_STATUS])==1?FALSE:TRUE);	
+}
+
+void Device_GPIO_Status(char *buf)
 {
 	u8 i;
+	//char *p=buf;
 	for(i=DEVICE_01; i<DEVICEn; i++)
-		if(g_device_status[i].power != Device_Power_Status(i))
-			return FALSE;
-		
-	return TRUE;
-		
+	{
+		//BSP_Printf("Device_Timer_Status Dev[%d].total: %d, passed: %d\n", i, g_device_status[i].total, g_device_status[i].passed);
+		sprintf(buf, "%d%d%d", Device_Power_Status(i), isDevBusy(i)?1:0, isDevWorking(i)?1:0);
+		buf+=GPIOS;
+	}
+	//BSP_Printf("Device Status: %s\n", p);
 }
 
 u8 CheckSum(char* pBuf, u16 len);
